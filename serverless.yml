@@ -37,66 +37,100 @@ functions:
           method: post
           cors: true
 
-  create:
-    handler: todos/create.create
+  listMailboxes:
+    handler: mailboxes/listMailboxes.list
     events:
       - http:
-          path: todos
-          method: post
-          cors: true
-
-  list:
-    handler: todos/list.list
-    events:
-      - http:
-          path: todos
+          path: mailboxes
           method: get
           cors: true
 
-  get:
-    handler: todos/get.get
+  getMailbox:
+    handler: mailboxes/getMailbox.get
     events:
       - http:
-          path: todos/{id}
+          path: mailboxes/{id}
           method: get
           cors: true
 
-  update:
-    handler: todos/update.update
+  updateMailbox:
+    handler: mailboxes/updateMailbox.update
     events:
       - http:
-          path: todos/{id}
+          path: mailboxes/{id}
           method: put
           cors: true
 
-  delete:
-    handler: todos/delete.delete
+  deleteMailbox:
+    handler: mailboxes/deleteMailbox.delete
     events:
       - http:
-          path: todos/{id}
+          path: mailboxes/{id}
           method: delete
           cors: true
 
+
+
+#  create:
+#    handler: todos/create.create
+#    events:
+#      - http:
+#          path: todos
+#          method: post
+#          cors: true
+
+#  list:
+#    handler: todos/list.list
+#    events:
+#      - http:
+#          path: todos
+#          method: get
+#          cors: true
+
+#  get:
+#    handler: todos/get.get
+#    events:
+#      - http:
+#          path: todos/{id}
+#          method: get
+#          cors: true
+
+#  update:
+#    handler: todos/update.update
+#    events:
+#      - http:
+#          path: todos/{id}
+#          method: put
+#          cors: true
+
+#  delete:
+#    handler: todos/delete.delete
+#    events:
+#      - http:
+#          path: todos/{id}
+#          method: delete
+#          cors: true
+
 resources:
   Resources:
-    TodosDynamoDbTable:
-      Type: 'AWS::DynamoDB::Table'
-      DeletionPolicy: Retain
-      Properties:
-        AttributeDefinitions:
-          -
-            AttributeName: id
-            AttributeType: S
-        KeySchema:
-          -
-            AttributeName: id
-            KeyType: HASH
-        ProvisionedThroughput:
-          ReadCapacityUnits: 1
-          WriteCapacityUnits: 1
-        TableName: ${self:provider.environment.DYNAMODB_TABLE}
+#    TodosDynamoDbTable:
+#      Type: 'AWS::DynamoDB::Table'
+#      DeletionPolicy: Retain
+#      Properties:
+#        AttributeDefinitions:
+#          -
+#            AttributeName: id
+#            AttributeType: S
+#        KeySchema:
+#          -
+#            AttributeName: id
+#            KeyType: HASH
+#        ProvisionedThroughput:
+#          ReadCapacityUnits: 1
+#          WriteCapacityUnits: 1
+#        TableName: ${self:provider.environment.DYNAMODB_TABLE}
         
-    MailboxesDynamoDbTable:
+    MailboxesDynamoDbTable: #eventually this should be defined outside of this file since CloudFormation does not support global tables
       Type: 'AWS::DynamoDB::Table'
       DeletionPolicy: Retain
       Properties:

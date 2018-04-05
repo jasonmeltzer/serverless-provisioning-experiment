@@ -26,7 +26,7 @@ module.exports.create = (event, context, callback) => {
 	      body: 'Couldn\'t create the mailbox; domain must be a string.',
 	    });
 	    return;
-	  }
+  }
 
   const params = {
     TableName: process.env.DYNAMODB_TABLE_MBOX,
@@ -47,7 +47,7 @@ module.exports.create = (event, context, callback) => {
       callback(null, {
         statusCode: error.statusCode || 501,
         headers: { 'Content-Type': 'text/plain' },
-        body: 'Couldn\'t create the mailbox.',
+        body: 'Couldn\'t create the mailbox item.',
       });
       return;
     }
