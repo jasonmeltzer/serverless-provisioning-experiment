@@ -6,18 +6,8 @@ provider:
   name: aws
   runtime: nodejs6.10
   environment:
-    DYNAMODB_TABLE: todo-${opt:stage, self:provider.stage}
     DYNAMODB_TABLE_MBOX: mailbox-${opt:stage, self:provider.stage}
   iamRoleStatements:
-    - Effect: Allow
-      Action:
-        - dynamodb:Query
-        - dynamodb:Scan
-        - dynamodb:GetItem
-        - dynamodb:PutItem
-        - dynamodb:UpdateItem
-        - dynamodb:DeleteItem
-      Resource: "arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.DYNAMODB_TABLE}"
     - Effect: Allow
       Action:
         - dynamodb:Query
@@ -75,7 +65,7 @@ resources:
         
     MailboxesDynamoDbTable: #eventually this should be defined outside of this file since CloudFormation does not support global tables
       Type: 'AWS::DynamoDB::Table'
-      DeletionPolicy: Retain #retain table and data between deployments
+      DeletionPolicy: Retain #retain table and data between deployments. Can use "Delete" to delete table between deployments.
       Properties:
         AttributeDefinitions:
           -
