@@ -13,22 +13,24 @@ provider:
 resources:
   Resources:
         
-#    MailboxesDynamoDbTable: #eventually this should be defined outside of this file since CloudFormation does not support global tables
-#      Type: 'AWS::DynamoDB::Table'
-#      DeletionPolicy: Retain #retain table and data between deployments. Can use "Delete" to delete table between deployments.
-#      Properties:
-#       AttributeDefinitions:
-#          -
-#            AttributeName: id
-#            AttributeType: S
-#        KeySchema:
-#          -
-#            AttributeName: id
-#            KeyType: HASH
-#        ProvisionedThroughput:
-#          ReadCapacityUnits: 1
-#          WriteCapacityUnits: 1
-#        TableName: ${self:provider.environment.DYNAMODB_TABLE_MBOX}
+    MailboxesDynamoDbTable: #eventually this should be defined outside of this file since CloudFormation does not support global tables
+      Type: 'AWS::DynamoDB::Table'
+      DeletionPolicy: Retain #retain table and data between deployments. Can use "Delete" to delete table between deployments.
+      Properties:
+        AttributeDefinitions:
+          -
+            AttributeName: id
+            AttributeType: S
+        KeySchema:
+          -
+            AttributeName: id
+            KeyType: HASH
+        ProvisionedThroughput:
+            ReadCapacityUnits: 1
+            WriteCapacityUnits: 1
+        TableName: ${self:provider.environment.DYNAMODB_TABLE_MBOX}
+        StreamSpecification:
+          StreamViewType: NEW_AND_OLD_IMAGES
 
 functions:
   hello:
@@ -36,12 +38,17 @@ functions:
     
     #set up a way to invoke function from DynamoDB stream
     events:
-      - stream: 
-          arn: arn:aws:dynamodb:us-east-1:849835118694:table/mailbox-dev/stream/2018-04-06T19:31:28.749 #genericize this later
-          #arn:aws:dynamodb:us-east-1:849835118694:table/mailbox-dev/stream/2018-04-05T23:39:49.400
-          batchSize: 20
-          startingPosition: TRIM_HORIZON
-          enabled: true
+      - stream:
+          type: dynamodb
+          arn:
+            Fn::GetAtt:
+              -  MailboxesDynamoDbTable
+              - StreamArn
+          batchSize: 1
+          #arn: arn:aws:dynamodb:us-east-1:849835118694:table/mailbox-dev/stream/2018-04-06T19:31:28.749 #there doesn't seem to be a way to make this generic
+          #batchSize: 20
+          #startingPosition: TRIM_HORIZON
+          #enabled: true
       #- stream:
       #    type: dynamodb
       #    arn:
