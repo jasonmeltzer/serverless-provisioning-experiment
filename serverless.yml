@@ -58,25 +58,25 @@ functions:
             Fn::GetAtt:
               -  MailboxesDynamoDbTable
               - StreamArn
-          batchSize: 1
-  hello:
-    handler: handler.hello           
+          batchSize: 1  
+  beginProvisioning:  
+    handler: beginProvisioning.begin     
             
 stepFunctions:
   stateMachines:
-    hellostepfunc1:
+    provisioningStateMachine:
       name: provisioningStateMachine
       events:
         - http:
-            path: hello
+            path: start-provisioning
             method: GET
       definition:
-        Comment: "A Hello World example of the Amazon States Language using an AWS Lambda Function"
-        StartAt: HelloWorld1
+        Comment: "First step of provisioning, using Amazon States Language and Lambda"
+        StartAt: BeginProvisioning
         States:
-          HelloWorld1:
+          BeginProvisioning:
             Type: Task
-            Resource: "arn:aws:lambda:#{AWS::Region}:#{AWS::AccountId}:function:${self:service}-${opt:stage}-hello"
+            Resource: "arn:aws:lambda:#{AWS::Region}:#{AWS::AccountId}:function:${self:service}-${opt:stage}-beginProvisioning"
             End: true
             
 

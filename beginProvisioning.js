@@ -1,6 +1,6 @@
 'use strict';
 
-module.exports.hello = (event, context, callback) => {
+module.exports.begin = (event, context, callback) => {
 	
 	 var eventText = JSON.stringify(event, null, 2);
 	 console.log("Received event:", eventText);
