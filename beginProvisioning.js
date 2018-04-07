@@ -5,19 +5,21 @@ module.exports.begin = (event, context, callback) => {
 	 var eventText = JSON.stringify(event, null, 2);
 	 console.log("Received event:", eventText);
 	
+	 var mailboxId = event.Records[0].dynamodb.Keys.id.S;
+	 console.log("id:", mailboxId);
+	 
+	 
+	/* 
 	
-	  const response = {
-          statusCode: 200,
-          body: JSON.stringify({
-            message: 'Go Serverless v1.0! Your function executed successfully!',
-            input: event,
-	      }),
-	  };
+	 const response = {
+         statusCode: 200,
+         body: JSON.stringify({
+             "message": 'beginProvisioning executed successfully!',
+             "input": event,
+	     }),
+	 };
 
-  callback(null, response);
-
-  // Use this code if you don't use the http event with the LAMBDA-PROXY integration
-  // callback(null, { message: 'Go Serverless v1.0! Your function executed successfully!', event });
+  callback(null, response);*/
 };
 
 

@@ -60,7 +60,9 @@ functions:
               - StreamArn
           batchSize: 1  
   beginProvisioning:  
-    handler: beginProvisioning.begin     
+    handler: beginProvisioning.begin  
+  avoidTheNoid:  
+    handler: avoidTheNoid.avoidNoid     
             
 stepFunctions:
   stateMachines:
@@ -68,7 +70,7 @@ stepFunctions:
       name: provisioningStateMachine
       events:
         - http:
-            path: start-provisioning
+            path: begin-provisioning
             method: GET
       definition:
         Comment: "First step of provisioning, using Amazon States Language and Lambda"
@@ -77,8 +79,15 @@ stepFunctions:
           BeginProvisioning:
             Type: Task
             Resource: "arn:aws:lambda:#{AWS::Region}:#{AWS::AccountId}:function:${self:service}-${opt:stage}-beginProvisioning"
-            End: true
-            
+            Next: Wait1
+          Wait1:
+            Type: Wait
+            Seconds: 60
+            Next: AvoidTheNoid
+          AvoidTheNoid:
+            Type: Task
+            Resource: "arn:aws:lambda:#{AWS::Region}:#{AWS::AccountId}:function:${self:service}-${opt:stage}-avoidTheNoid"
+            End: true  
 
 #    hellostepfunc1:
 #      name: 'hellostepfunc1'
