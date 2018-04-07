@@ -36,6 +36,7 @@ module.exports.create = (event, context, callback) => {
       domain: data.domain, // change this later to reference another table
       createdAt: timestamp,
       updatedAt: timestamp,
+      mailboxStatus: "initial",
     },
   };
 

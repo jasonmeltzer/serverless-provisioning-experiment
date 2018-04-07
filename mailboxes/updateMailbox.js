@@ -42,8 +42,9 @@ module.exports.update = (event, context, callback) => {
       ':domain': data.domain,
       ':username': data.username,
       ':updatedAt': timestamp,
+      ':mailboxStatus': 'update-requested',
     },
-    UpdateExpression: 'SET #mailbox_domain = :domain, #mailbox_username = :username, updatedAt = :updatedAt',
+    UpdateExpression: 'SET #mailbox_domain = :domain, #mailbox_username = :username, updatedAt = :updatedAt, mailboxStatus = :mailboxStatus',
     ReturnValues: 'ALL_NEW',
   };
 
