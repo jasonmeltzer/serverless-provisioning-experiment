@@ -9,11 +9,16 @@ provider:
   stage: dev   #default stage - not sure why this isn't needed in other project
   environment:
     DYNAMODB_TABLE_MBOX: mailbox-${opt:stage, self:provider.stage}
+  iamRoleStatements:
+    - Effect: Allow     # allow the step functions state machine to be executed by another lambda
+      Action:
+        - states:StartExecution
+      Resource: "*"
     
 resources:
   Resources:
         
-    MailboxesDynamoDbTable: #eventually this should be defined outside of this file since CloudFormation does not support global tables
+    MailboxesDynamoDbTable: #ideally this should be defined outside of this file since CloudFormation does not support global tables
       Type: 'AWS::DynamoDB::Table'
       DeletionPolicy: Retain #retain table and data between deployments. Can use "Delete" to delete table between deployments.
       Properties:
@@ -31,11 +36,20 @@ resources:
         TableName: ${self:provider.environment.DYNAMODB_TABLE_MBOX}
         StreamSpecification:
           StreamViewType: NEW_AND_OLD_IMAGES
+          
+  Outputs:
+    Proxy:
+      Description: The ARN of the state machine
+      Value:
+        Ref: ProvisioningStateMachine   #Even though the name of the Step Function begins with a lower letter
+                                        #we have to reference it here using a capital letter, don’t ask me why.
 
 functions:
-  hello:
-    handler: handler.hello
-    
+  dynamoChangeHandler:
+    handler: dynamoChangeHandler.process
+    environment:
+      statemachine_arn: ${self:resources.Outputs.Proxy.Value}  # this gives the lambda a handle to execute the step functions state machine
+
     #set up a way to invoke function from DynamoDB stream
     events:
       - stream:
@@ -45,36 +59,13 @@ functions:
               -  MailboxesDynamoDbTable
               - StreamArn
           batchSize: 1
-          #arn: arn:aws:dynamodb:us-east-1:849835118694:table/mailbox-dev/stream/2018-04-06T19:31:28.749 #there doesn't seem to be a way to make this generic
-          #batchSize: 20
-          #startingPosition: TRIM_HORIZON
-          #enabled: true
-      #- stream:
-      #    type: dynamodb
-      #    arn:
-      #      Fn::GetAtt:
-      #        - MailboxesDynamoDbTable
-      #        - StreamArn
-#      - stream:
-#          type: dynamodb
-#          arn:
-#            Fn::ImportValue: MyExportedDynamoDbStreamArnId
-#      - stream:
-#          type: kinesis
-#          arn:
-#            Fn::GetAtt:
-#              - MyKinesisStream
-#              - Arn
-#      - stream:
-#          type: kinesis
-#          arn:
-#            Fn::ImportValue: MyExportedKinesisStreamArnId
-            
+  hello:
+    handler: handler.hello           
             
 stepFunctions:
   stateMachines:
     hellostepfunc1:
-      name: myStateMachine
+      name: provisioningStateMachine
       events:
         - http:
             path: hello
@@ -87,6 +78,23 @@ stepFunctions:
             Type: Task
             Resource: "arn:aws:lambda:#{AWS::Region}:#{AWS::AccountId}:function:${self:service}-${opt:stage}-hello"
             End: true
+            
+
+#    hellostepfunc1:
+#      name: 'hellostepfunc1'
+#      definition:
+#        Comment: "A Hello World example"
+#        StartAt: HelloWorld
+#        States:
+#          HelloWorld:
+#            Type: Task
+#            Resource: "arn:aws:lambda:#{AWS::Region}:#{AWS::AccountId}:function:${self:service}-${opt:stage}-hello"
+#            Next: CiaoWorld
+#          CiaoWorld:
+#            Type: Task
+#            Resource: "arn:aws:lambda:#{AWS::Region}:#{AWS::AccountId}:function:${self:service}-${opt:stage}-ciao"
+#            End: trueresources:
+     
             
 plugins:
   - serverless-step-functions

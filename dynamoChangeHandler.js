@@ -1,23 +1,50 @@
 'use strict';
 
-module.exports.hello = (event, context, callback) => {
-	
-	 var eventText = JSON.stringify(event, null, 2);
-	 console.log("Received event:", eventText);
-	
-	
-	  const response = {
-          statusCode: 200,
-          body: JSON.stringify({
-            message: 'Go Serverless v1.0! Your function executed successfully!',
-            input: event,
-	      }),
-	  };
+var aws = require('aws-sdk')
 
-  callback(null, response);
-
-  // Use this code if you don't use the http event with the LAMBDA-PROXY integration
-  // callback(null, { message: 'Go Serverless v1.0! Your function executed successfully!', event });
+module.exports.process = (event, context, callback) => {
+	
+	var eventText = JSON.stringify(event, null, 2);
+	console.log("Received event:", eventText);
+	
+	var stateMachineArn = process.env.statemachine_arn;
+	console.log("state machine arn:", stateMachineArn);
+	
+	var eventName = event.Records[0].eventName;
+	if (eventName.toUpperCase() === "INSERT") {
+		console.log("A new row appeared")
+	} else if (eventName.toUpperCase() === "MODIFY") {
+		console.log("Someone changed something")
+	} else if (eventName.toUpperCase() === "REMOVE") {
+		console.log("Someone deleted some stuff")
+	} else {
+		console.log("I have no idea what happened. I give up.")
+	}
+	
+	// call the provisioning step flow 
+	var params = {
+	  stateMachineArn: stateMachineArn,
+	  input: eventText // TODO: change this later to do something with the eventText using JSON.stringify({})
+	}
+	
+	var stepfunctions = new aws.StepFunctions()
+	stepfunctions.startExecution(params, function (err, data) {
+	    if (err) {
+	      console.log('err while executing step function')
+	    } else {
+	      console.log('started execution of step function')
+	    }
+	})
+	
+	
+	const response = {
+	  statusCode: 200,
+	  body: JSON.stringify({
+	    message: 'DynamoChangeHandler: event handled',
+	    input: event,
+      }),
+    };
+	callback(null, response);
 };
 
 
