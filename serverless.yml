@@ -14,6 +14,15 @@ provider:
       Action:
         - states:StartExecution
       Resource: "*"
+    - Effect: Allow   # allow the lambdas in this project to do database operations
+      Action:
+        - dynamodb:Query
+        - dynamodb:Scan
+        - dynamodb:GetItem
+        - dynamodb:PutItem
+        - dynamodb:UpdateItem
+        - dynamodb:DeleteItem
+      Resource: "arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.DYNAMODB_TABLE_MBOX}"
     
 resources:
   Resources:
@@ -62,7 +71,9 @@ functions:
   beginProvisioning:  
     handler: beginProvisioning.begin  
   avoidTheNoid:  
-    handler: avoidTheNoid.avoidNoid     
+    handler: avoidTheNoid.avoidNoid  
+  completeProvisioning:  
+    handler: completeProvisioning.complete    
             
 stepFunctions:
   stateMachines:
@@ -73,36 +84,50 @@ stepFunctions:
             path: begin-provisioning
             method: GET
       definition:
-        Comment: "First step of provisioning, using Amazon States Language and Lambda"
-        StartAt: BeginProvisioning
+        Comment: "A fake provisioning engine, using Amazon States Language and Lambda"
+        StartAt: Wait1
         States:
+          Wait1:
+            Type: Wait
+            Seconds: 15
+            Next: BeginProvisioning
           BeginProvisioning:
             Type: Task
             Resource: "arn:aws:lambda:#{AWS::Region}:#{AWS::AccountId}:function:${self:service}-${opt:stage}-beginProvisioning"
-            Next: Wait1
-          Wait1:
+            Next: Wait2
+          Wait2:
             Type: Wait
-            Seconds: 60
+            Seconds: 30
             Next: AvoidTheNoid
           AvoidTheNoid:
             Type: Task
             Resource: "arn:aws:lambda:#{AWS::Region}:#{AWS::AccountId}:function:${self:service}-${opt:stage}-avoidTheNoid"
-            End: true  
-
-#    hellostepfunc1:
-#      name: 'hellostepfunc1'
-#      definition:
-#        Comment: "A Hello World example"
-#        StartAt: HelloWorld
-#        States:
-#          HelloWorld:
-#            Type: Task
-#            Resource: "arn:aws:lambda:#{AWS::Region}:#{AWS::AccountId}:function:${self:service}-${opt:stage}-hello"
-#            Next: CiaoWorld
-#          CiaoWorld:
-#            Type: Task
-#            Resource: "arn:aws:lambda:#{AWS::Region}:#{AWS::AccountId}:function:${self:service}-${opt:stage}-ciao"
-#            End: trueresources:
+            Next: Wait3  
+          Wait3:
+            Type: Wait
+            Seconds: 30
+            Next: WasNoidAvoided
+          WasNoidAvoided:
+            Type: Choice
+            Choices: 
+              - Variable: "$.value"
+                NumericGreaterThan: 0.1
+                Next: NoidAvoided
+              - Variable: "$.value"
+                NumericLessThan: 0.1
+                Next: NoidNotAvoided
+            Default: NoidNotAvoided
+          NoidAvoided:
+            Type: Pass
+            Next: CompleteProvisioning
+          NoidNotAvoided:
+            Type: Fail
+            Cause: "Noid caught you!"
+          CompleteProvisioning: 
+            End: true
+            Type: Task
+            Resource: "arn:aws:lambda:#{AWS::Region}:#{AWS::AccountId}:function:${self:service}-${opt:stage}-completeProvisioning"               
+              
      
             
 plugins:

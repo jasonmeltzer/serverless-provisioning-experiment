@@ -17,14 +17,50 @@ module.exports.process = (event, context, callback) => {
 		console.log("Someone changed something")
 	} else if (eventName.toUpperCase() === "REMOVE") {
 		console.log("Someone deleted some stuff")
+		return; // Need to define a separate workflow for deletes - the existing one doesn't handle the updates well because it expects a "NewImage".
 	} else {
 		console.log("I have no idea what happened. I give up.")
+		return;
 	}
 	
+	
+	// Make sure this isn't responding to a status update that was caused by kicking off the state machine
+	// Only statuses of 'initial' and 'update-requested' are expected values to be dealt with.
+	// undefined should not happen, but is left here for testing.
+	if (typeof event.Records[0].dynamodb.NewImage.mailboxStatus === "undefined") {
+		var newMailboxStatus = 'undefined';
+	} else {
+		var newMailboxStatus = event.Records[0].dynamodb.NewImage.mailboxStatus.S;
+	}
+	let allowedStatuses = new Set();
+	allowedStatuses.add('initial');
+	allowedStatuses.add('update-requested');
+	allowedStatuses.add('undefined');
+	
+	console.log("New mailbox status:", newMailboxStatus);
+	if (!allowedStatuses.has(newMailboxStatus)) {
+		console.log("New mailbox status not undefined and not in allowed set to proceed. Exiting.");
+		return;
+	}
+		
+		
+    var inputArr = {};
+	inputArr['id'] = event.Records[0].dynamodb.Keys.id.S;
+	if (event.Records[0].dynamodb.NewImage.domain) {
+		inputArr['domain'] = event.Records[0].dynamodb.NewImage.domain.S;
+	}
+	if (event.Records[0].dynamodb.NewImage.username) {
+		inputArr['username'] = event.Records[0].dynamodb.NewImage.username.S;
+	}
+	if (event.Records[0].dynamodb.NewImage.mailboxStatus) {
+		inputArr['mailboxStatus'] = event.Records[0].dynamodb.NewImage.mailboxStatus.S;
+	}
+	
+    
 	// call the provisioning step flow 
 	var params = {
 	  stateMachineArn: stateMachineArn,
-	  input: eventText // TODO: change this later to do something with the eventText using JSON.stringify({})
+	  input: JSON.stringify(inputArr)
 	}
 	
 	var stepfunctions = new aws.StepFunctions()
@@ -46,123 +82,3 @@ module.exports.process = (event, context, callback) => {
     };
 	callback(null, response);
 };
-
-
-/*
-Event for new item (id=456, domain=abc.com):
-{
-    "Records": [
-        {
-            "eventID": "83e9b2f8e0af37f50db0b39bc3c00f99",
-            "eventName": "INSERT",
-            "eventVersion": "1.1",
-            "eventSource": "aws:dynamodb",
-            "awsRegion": "us-east-1",
-            "dynamodb": {
-                "ApproximateCreationDateTime": 1523049540,
-                "Keys": {
-                    "id": {
-                        "S": "456"
-                    }
-                },
-                "NewImage": {
-                    "domain": {
-                        "S": "abc.com"
-                    },
-                    "id": {
-                        "S": "456"
-                    }
-                },
-                "SequenceNumber": "200000000004282719674",
-                "SizeBytes": 23,
-                "StreamViewType": "NEW_AND_OLD_IMAGES"
-            },
-            "eventSourceARN": "arn:aws:dynamodb:us-east-1:849835118694:table/mailbox-dev/stream/2018-04-06T20:25:38.011"
-        }
-    ]
-}  
-  
-  
-  
-Event for updated item:
-{
-    "Records": [
-        {
-            "eventID": "3482b9c612f9c81baf8e57558b250307",
-            "eventName": "MODIFY",
-            "eventVersion": "1.1",
-            "eventSource": "aws:dynamodb",
-            "awsRegion": "us-east-1",
-            "dynamodb": {
-                "ApproximateCreationDateTime": 1523049660,
-                "Keys": {
-                    "id": {
-                        "S": "456"
-                    }
-                },
-                "NewImage": {
-                    "domain": {
-                        "S": "abcd.com"
-                    },
-                    "id": {
-                        "S": "456"
-                    },
-                    "username": {
-                        "S": "jason"
-                    }
-                },
-                "OldImage": {
-                    "domain": {
-                        "S": "abc.com"
-                    },
-                    "id": {
-                        "S": "456"
-                    }
-                },
-                "SequenceNumber": "300000000004282782098",
-                "SizeBytes": 55,
-                "StreamViewType": "NEW_AND_OLD_IMAGES"
-            },
-            "eventSourceARN": "arn:aws:dynamodb:us-east-1:849835118694:table/mailbox-dev/stream/2018-04-06T20:25:38.011"
-        }
-    ]
-}  
-  
-  
-Event for deleted item:
-{
-    "Records": [
-        {
-            "eventID": "fe4deee89b1029099b5b2225bb52fd4b",
-            "eventName": "REMOVE",
-            "eventVersion": "1.1",
-            "eventSource": "aws:dynamodb",
-            "awsRegion": "us-east-1",
-            "dynamodb": {
-                "ApproximateCreationDateTime": 1523050140,
-                "Keys": {
-                    "id": {
-                        "S": "456"
-                    }
-                },
-                "OldImage": {
-                    "domain": {
-                        "S": "abcd.com"
-                    },
-                    "id": {
-                        "S": "456"
-                    },
-                    "username": {
-                        "S": "jason"
-                    }
-                },
-                "SequenceNumber": "400000000004283097793",
-                "SizeBytes": 37,
-                "StreamViewType": "NEW_AND_OLD_IMAGES"
-            },
-            "eventSourceARN": "arn:aws:dynamodb:us-east-1:849835118694:table/mailbox-dev/stream/2018-04-06T20:25:38.011"
-        }
-    ]
-}
-
-*/

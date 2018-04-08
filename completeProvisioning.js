@@ -3,22 +3,23 @@
 var AWS = require('aws-sdk'),
     documentClient = new AWS.DynamoDB.DocumentClient(); 
 
-module.exports.begin = (event, context, callback) => {
+module.exports.complete = (event, context, callback) => {
 	
 	 var eventText = JSON.stringify(event, null, 2);
 	 console.log("Received event:", eventText);
 	
 	 
 	 var input = JSON.parse(eventText);
+	 var inputData = JSON.parse(input.input);
 	 
 	 var dynamoParams = {
 	     TableName : process.env.DYNAMODB_TABLE_MBOX,
 	     Key:{
-	         "id": input.id
+	         "id": inputData.id
          },
 	     UpdateExpression: "set mailboxStatus = :s",
 	     ExpressionAttributeValues:{
-	         ":s": "provisioning-started"
+	         ":s": "provisioning-completed"
 	     },
 	     ReturnValues:"UPDATED_NEW"
 	 };
@@ -28,20 +29,9 @@ module.exports.begin = (event, context, callback) => {
 		// else console.log(data);
 	 });
 
-	
-	 // input for the next step in the state machine
-	 var nextInputArr = {};
-	 nextInputArr['id'] = event.id;
-	 if (event.domain) {
-		 nextInputArr['domain'] = event.domain;
-	 }
-	 if (event.username) {
-		 nextInputArr['username'] = event.username;
-	 }
 	 
 	 const response = {
-         statusCode: 200,
-         input: JSON.stringify(nextInputArr),
+         statusCode: 200
 	 };
 	 
      callback(null, response);
