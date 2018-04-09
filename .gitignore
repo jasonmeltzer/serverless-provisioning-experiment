@@ -8,3 +8,6 @@ serverless-step-functions/node_modules/
 serverless-rest-api/.serverless
 serverless-step-functions/.serverless
 serverless-step-functions-java/.serverless
+
+
+serverless-step-functions-java/target
