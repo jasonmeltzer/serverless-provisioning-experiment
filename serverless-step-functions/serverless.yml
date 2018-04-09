@@ -47,7 +47,7 @@ resources:
           StreamViewType: NEW_AND_OLD_IMAGES
           
   Outputs:
-    Proxy:
+    ProvisioningStateMachineProxy:
       Description: The ARN of the state machine
       Value:
         Ref: ProvisioningStateMachine   #Even though the name of the Step Function begins with a lower letter
@@ -57,15 +57,17 @@ functions:
   dynamoChangeHandler:
     handler: dynamoChangeHandler.process
     environment:
-      statemachine_arn: ${self:resources.Outputs.Proxy.Value}  # this gives the lambda a handle to execute the step functions state machine
-
+      # this gives the lambda a handle to execute the provisioning state machine (step functions)
+      provisioningstatemachine_arn: ${self:resources.Outputs.ProvisioningStateMachineProxy.Value} 
+      # also get a handle on the output value from the Java project so this function can kick off the deletion state machine defined in that project
+      deletionstatemachine_arn: ${cf:provisioning-steps-java-${opt:stage, self:provider.stage}.DeletionStateMachineProxy} 
     #set up a way to invoke function from DynamoDB stream
     events:
       - stream:
           type: dynamodb
           arn:
             Fn::GetAtt:
-              -  MailboxesDynamoDbTable
+              - MailboxesDynamoDbTable
               - StreamArn
           batchSize: 1  
   beginProvisioning:  
