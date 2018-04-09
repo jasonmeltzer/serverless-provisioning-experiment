@@ -6,20 +6,25 @@ The provisioning engine uses step functions (split between two projects - one wo
 
 
 To install serverless, run:
+
+```
 npm install -g serverless
+```
 
 Then create an IAM user for the Serverless framework (https://serverless.com/framework/docs/providers/aws/guide/credentials/):
+```
 serverless config credentials --provider aws --key <KEY_ID> --secret <SECRET>
-
+```
 
 Some of these projects require serverless plugins. Run these commands in the serverless-step-functions and serverless-step-functions-java directories:
+```
 serverless plugin install --name serverless-step-functions
 serverless plugin install --name serverless-pseudo-parameters
-
+```
 
 The recommended order to deploy these projects:
 
-Serverless-rest-api:
+serverless-rest-api:
 ```
 serverless deploy --region us-west-2 --stage dev
 ```
@@ -37,14 +42,17 @@ serverless deploy --region us-east-1 --stage dev
 
 
 This configuration relies on the "global tables" feature of DynamoDB, so you'll also need to run this command:
+```
 aws dynamodb create-global-table --global-table-name mailbox-dev --replication-group RegionName=us-west-2 RegionName=us-east-1 --region us-west-2
+```
 (Replace regions and "mailbox-dev" as appropriate based on "stage" param)
 
 
 
 
 To clean up:
-Serverless-rest-api:
+
+serverless-rest-api:
 ```
 serverless remove --region us-west-2 --stage dev
 ```
