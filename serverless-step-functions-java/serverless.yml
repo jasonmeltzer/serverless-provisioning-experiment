@@ -5,34 +5,40 @@ frameworkVersion: ">=1.2.0 <2.0.0"
 provider:
   name: aws
   runtime: java8
-  environment:
+  #environment:
+    # Can't do the below. This project is required by the node project, so it has to be deployed first, and the cf variables defined in the
+    # node project aren't available if this is deployed first.
+    
     #reference the output variable mailboxDynamoDbTableName defined in provisioning-steps project (in the appropriate stage)
-    DYNAMODB_TABLE_MBOX: ${cf:provisioning-steps-${opt:stage, self:provider.stage}.mailboxesDynamoDbTableName} 
-  iamRoleStatements:
-    - Effect: Allow
-      Action:
-        - dynamodb:DescribeTable
-        - dynamodb:Query
-        - dynamodb:Scan
-        - dynamodb:GetItem
-        - dynamodb:PutItem
-        - dynamodb:UpdateItem
-        - dynamodb:DeleteItem
-      Resource:
+  #  DYNAMODB_TABLE_MBOX: ${cf:provisioning-steps-${opt:stage, self:provider.stage}.mailboxesDynamoDbTableName} 
+  #iamRoleStatements:
+  #  - Effect: Allow
+  #    Action:
+  #      - dynamodb:DescribeTable
+  #      - dynamodb:Query
+  #      - dynamodb:Scan
+  #      - dynamodb:GetItem
+  #      - dynamodb:PutItem
+  #      - dynamodb:UpdateItem
+  #      - dynamodb:DeleteItem
+  #    Resource:
         #reference the output variable mailboxDynamoDbTableArn defined in provisioning-steps project (in the appropriate stage)
-        ${cf:provisioning-steps-${opt:stage, self:provider.stage}.mailboxesDynamoDbTableArn} 
+  #      ${cf:provisioning-steps-${opt:stage, self:provider.stage}.mailboxesDynamoDbTableArn} 
   
 package:
   artifact: target/provisioning-steps-java.jar
 
-functions:
-  currentTime:
-    handler: com.serverless.Handler
-    events:
-      - http:
-          path: ping
-          method: get
+resources:
+  Outputs:
+    DeletionStateMachineProxy: #output this variable so that a lambda function in another project can reference it and kick off the deletion steps
+      Description: The ARN of the deletion state machine 
+      Value:
+        Ref: DeletionStateMachine #this must be capitalized even though the name below is camel case
+        
 
+functions:
+  deletionHandler:
+    handler: com.godaddy.DeletionHandler
           
 stepFunctions:
   stateMachines:
@@ -44,9 +50,14 @@ stepFunctions:
             method: GET
       definition:
         Comment: "A fake engine, using Amazon States Language and Lambda"
-        StartAt: Wait1
+        StartAt: DeletionHandler
         States:
-          Wait1:
-            Type: Wait
-            Seconds: 15
-            End: true
+          DeletionHandler:
+            Type: Task
+            Resource: "arn:aws:lambda:#{AWS::Region}:#{AWS::AccountId}:function:${self:service}-${opt:stage}-deletionHandler"
+            End: true 
+       
+         
+plugins:
+  - serverless-step-functions
+  - serverless-pseudo-parameters
