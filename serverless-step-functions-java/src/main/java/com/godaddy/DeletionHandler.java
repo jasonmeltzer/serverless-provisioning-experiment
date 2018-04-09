@@ -19,7 +19,29 @@ public class DeletionHandler implements RequestHandler<Map<String, Object>, ApiG
 	@Override
 	public ApiGatewayResponse handleRequest(Map<String, Object> input, Context context) {
 		LOG.info("received: " + input);
-		Response responseBody = new Response("Hello, the current time is " + new Date());
+		
+		for (String key : input.keySet()) {
+			LOG.info("key: " + key + ", value: " + input.get(key));
+		}
+		
+		Response responseBody = null;
+		try {
+			String id = (String)input.get("id");
+			String domain = (String)input.get("domain");
+			String username = (String)input.get("username");
+			if (domain != null && username != null) {
+				responseBody = new Response("Goodbye " + username + "@" + domain + ", we'll miss you!");
+			} else if (id != null) {
+				responseBody = new Response("Goodbye user " + id + ", we'll miss you!");
+			} else {
+				responseBody = new Response("Goodbye whoever you were, we'll miss you!");
+			}
+		} catch (ClassCastException e) {
+			LOG.error("Exception casting value to string", e);
+			responseBody = new Response("Goodbye whoever you were, we'll miss you!");
+		}
+		
+
 		Map<String, String> headers = new HashMap<>();
 		headers.put("X-Powered-By", "AWS Lambda & Serverless");
 		headers.put("Content-Type", "application/json");
