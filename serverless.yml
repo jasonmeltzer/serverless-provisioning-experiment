@@ -1,0 +1,135 @@
+# Built based on https://serverless.com/blog/how-to-manage-your-aws-step-functions-with-serverless/
+
+service: provisioning-steps 
+frameworkVersion: ">=1.1.0 <2.0.0"
+
+provider:
+  name: aws
+  runtime: nodejs6.10
+  stage: dev   #default stage - not sure why this isn't needed in other project
+  environment:
+    DYNAMODB_TABLE_MBOX: mailbox-${opt:stage, self:provider.stage}
+  iamRoleStatements:
+    - Effect: Allow     # allow the step functions state machine to be executed by another lambda
+      Action:
+        - states:StartExecution
+      Resource: "*"
+    - Effect: Allow   # allow the lambdas in this project to do database operations
+      Action:
+        - dynamodb:Query
+        - dynamodb:Scan
+        - dynamodb:GetItem
+        - dynamodb:PutItem
+        - dynamodb:UpdateItem
+        - dynamodb:DeleteItem
+      Resource: "arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.DYNAMODB_TABLE_MBOX}"
+    
+resources:
+  Resources:
+        
+    MailboxesDynamoDbTable: #ideally this should be defined outside of this file since CloudFormation does not support global tables
+      Type: 'AWS::DynamoDB::Table'
+      DeletionPolicy: Retain #retain table and data between deployments. Can use "Delete" to delete table between deployments.
+      Properties:
+        AttributeDefinitions:
+          -
+            AttributeName: id
+            AttributeType: S
+        KeySchema:
+          -
+            AttributeName: id
+            KeyType: HASH
+        ProvisionedThroughput:
+            ReadCapacityUnits: 1
+            WriteCapacityUnits: 1
+        TableName: ${self:provider.environment.DYNAMODB_TABLE_MBOX}
+        StreamSpecification:
+          StreamViewType: NEW_AND_OLD_IMAGES
+          
+  Outputs:
+    Proxy:
+      Description: The ARN of the state machine
+      Value:
+        Ref: ProvisioningStateMachine   #Even though the name of the Step Function begins with a lower letter
+                                        #we have to reference it here using a capital letter, don’t ask me why.
+
+functions:
+  dynamoChangeHandler:
+    handler: dynamoChangeHandler.process
+    environment:
+      statemachine_arn: ${self:resources.Outputs.Proxy.Value}  # this gives the lambda a handle to execute the step functions state machine
+
+    #set up a way to invoke function from DynamoDB stream
+    events:
+      - stream:
+          type: dynamodb
+          arn:
+            Fn::GetAtt:
+              -  MailboxesDynamoDbTable
+              - StreamArn
+          batchSize: 1  
+  beginProvisioning:  
+    handler: beginProvisioning.begin  
+  avoidTheNoid:  
+    handler: avoidTheNoid.avoidNoid  
+  completeProvisioning:  
+    handler: completeProvisioning.complete    
+            
+stepFunctions:
+  stateMachines:
+    provisioningStateMachine:
+      name: provisioningStateMachine
+      events:
+        - http:
+            path: begin-provisioning
+            method: GET
+      definition:
+        Comment: "A fake provisioning engine, using Amazon States Language and Lambda"
+        StartAt: Wait1
+        States:
+          Wait1:
+            Type: Wait
+            Seconds: 15
+            Next: BeginProvisioning
+          BeginProvisioning:
+            Type: Task
+            Resource: "arn:aws:lambda:#{AWS::Region}:#{AWS::AccountId}:function:${self:service}-${opt:stage}-beginProvisioning"
+            Next: Wait2
+          Wait2:
+            Type: Wait
+            Seconds: 30
+            Next: AvoidTheNoid
+          AvoidTheNoid:
+            Type: Task
+            Resource: "arn:aws:lambda:#{AWS::Region}:#{AWS::AccountId}:function:${self:service}-${opt:stage}-avoidTheNoid"
+            Next: Wait3  
+          Wait3:
+            Type: Wait
+            Seconds: 30
+            Next: WasNoidAvoided
+          WasNoidAvoided:
+            Type: Choice
+            Choices: 
+              - Variable: "$.value"
+                NumericGreaterThan: 0.1
+                Next: NoidAvoided
+              - Variable: "$.value"
+                NumericLessThan: 0.1
+                Next: NoidNotAvoided
+            Default: NoidNotAvoided
+          NoidAvoided:
+            Type: Pass
+            Next: CompleteProvisioning
+          NoidNotAvoided:
+            Type: Fail
+            Cause: "Noid caught you!"
+          CompleteProvisioning: 
+            End: true
+            Type: Task
+            Resource: "arn:aws:lambda:#{AWS::Region}:#{AWS::AccountId}:function:${self:service}-${opt:stage}-completeProvisioning"               
+              
+     
+            
+plugins:
+  - serverless-step-functions
+  - serverless-pseudo-parameters
