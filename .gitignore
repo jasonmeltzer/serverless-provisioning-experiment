@@ -1,0 +1,10 @@
+# package directories
+serverless-rest-api/node_modules
+serverless-rest-api/jspm_packages
+serverless-step-functions-java/node_modules/
+serverless-step-functions/node_modules/
+
+# Serverless directories
+serverless-rest-api/.serverless
+serverless-step-functions/.serverless
+serverless-step-functions-java/.serverless
