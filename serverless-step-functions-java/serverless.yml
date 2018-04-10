@@ -5,25 +5,22 @@ frameworkVersion: ">=1.2.0 <2.0.0"
 provider:
   name: aws
   runtime: java8
-  #environment:
-    # Can't do the below. This project is required by the node project, so it has to be deployed first, and the cf variables defined in the
-    # node project aren't available if this is deployed first.
-    
-    #reference the output variable mailboxDynamoDbTableName defined in provisioning-steps project (in the appropriate stage)
-  #  DYNAMODB_TABLE_MBOX: ${cf:provisioning-steps-${opt:stage, self:provider.stage}.mailboxesDynamoDbTableName} 
-  #iamRoleStatements:
-  #  - Effect: Allow
-  #    Action:
-  #      - dynamodb:DescribeTable
-  #      - dynamodb:Query
-  #      - dynamodb:Scan
-  #      - dynamodb:GetItem
-  #      - dynamodb:PutItem
-  #      - dynamodb:UpdateItem
-  #      - dynamodb:DeleteItem
-  #    Resource:
-        #reference the output variable mailboxDynamoDbTableArn defined in provisioning-steps project (in the appropriate stage)
-  #      ${cf:provisioning-steps-${opt:stage, self:provider.stage}.mailboxesDynamoDbTableArn} 
+  environment:
+    #reference the output variable mailboxDynamoDbTableName defined in serverless-provisioning-dbonly project (in the appropriate stage)
+    DYNAMODB_TABLE_MBOX: ${cf:serverless-provisioning-dbonly-${opt:stage, self:provider.stage}.mailboxesDynamoDbTableName} 
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - dynamodb:DescribeTable
+        - dynamodb:Query
+        - dynamodb:Scan
+        - dynamodb:GetItem
+        - dynamodb:PutItem
+        - dynamodb:UpdateItem
+        - dynamodb:DeleteItem
+      Resource:
+        #reference the output variable mailboxDynamoDbTableArn defined in serverless-provisioning-dbonly project (in the appropriate stage)
+        ${cf:serverless-provisioning-dbonly-${opt:stage, self:provider.stage}.mailboxesDynamoDbTableArn} 
   
 package:
   artifact: target/provisioning-steps-java.jar

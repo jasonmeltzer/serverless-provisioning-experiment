@@ -8,6 +8,8 @@ serverless-step-functions/node_modules/
 serverless-rest-api/.serverless
 serverless-step-functions/.serverless
 serverless-step-functions-java/.serverless
-
+serverless-provisioning-dbonly/.serverless
 
 serverless-step-functions-java/target
+
+.DS_Store

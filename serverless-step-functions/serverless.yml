@@ -8,7 +8,9 @@ provider:
   runtime: nodejs6.10
   stage: dev   #default stage - not sure why this isn't needed in other project
   environment:
-    DYNAMODB_TABLE_MBOX: mailbox-${opt:stage, self:provider.stage}
+    #reference the output variable mailboxDynamoDbTableName defined in serverless-provisioning-dbonly project (in the appropriate stage)
+    DYNAMODB_TABLE_MBOX: ${cf:serverless-provisioning-dbonly-${opt:stage, self:provider.stage}.mailboxesDynamoDbTableName}   
+    DYNAMODB_TABLE_MBOX_ARN: ${cf:serverless-provisioning-dbonly-${opt:stage, self:provider.stage}.mailboxesDynamoDbTableArn}   
   iamRoleStatements:
     - Effect: Allow     # allow the step functions state machine to be executed by another lambda
       Action:
@@ -22,36 +24,23 @@ provider:
         - dynamodb:PutItem
         - dynamodb:UpdateItem
         - dynamodb:DeleteItem
-      Resource: "arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.DYNAMODB_TABLE_MBOX}"
+        
+        #not sure if these are needed, might be for hooking up the stream?
+        #- dynamodb:GetRecords
+        #- dynamodb:GetShardIterator
+        #- dynamodb:DescribeStream
+        #- dynamodb:ListStreams
+      Resource: 
+        #reference the output variable mailboxDynamoDbTableArn defined in serverless-provisioning-dbonly project (in the appropriate stage)
+        ${cf:serverless-provisioning-dbonly-${opt:stage, self:provider.stage}.mailboxesDynamoDbTableArn} 
     
 resources:
-  Resources:
-        
-    MailboxesDynamoDbTable: #ideally this should be defined outside of this file since CloudFormation does not support global tables
-      Type: 'AWS::DynamoDB::Table'
-      DeletionPolicy: Retain #retain table and data between deployments. Can use "Delete" to delete table between deployments.
-      Properties:
-        AttributeDefinitions:
-          -
-            AttributeName: id
-            AttributeType: S
-        KeySchema:
-          -
-            AttributeName: id
-            KeyType: HASH
-        ProvisionedThroughput:
-            ReadCapacityUnits: 1
-            WriteCapacityUnits: 1
-        TableName: ${self:provider.environment.DYNAMODB_TABLE_MBOX}
-        StreamSpecification:
-          StreamViewType: NEW_AND_OLD_IMAGES
-          
+
   Outputs:
     ProvisioningStateMachineProxy:
       Description: The ARN of the state machine
       Value:
-        Ref: ProvisioningStateMachine   #Even though the name of the Step Function begins with a lower letter
-                                        #we have to reference it here using a capital letter, don’t ask me why.
+        Ref: ProvisioningStateMachine   #Even though the name of the step function is camel case we have to capitalize, not sure why.
 
 functions:
   dynamoChangeHandler:
@@ -61,15 +50,15 @@ functions:
       provisioningstatemachine_arn: ${self:resources.Outputs.ProvisioningStateMachineProxy.Value} 
       # also get a handle on the output value from the Java project so this function can kick off the deletion state machine defined in that project
       deletionstatemachine_arn: ${cf:provisioning-steps-java-${opt:stage, self:provider.stage}.DeletionStateMachineProxy} 
-    #set up a way to invoke function from DynamoDB stream
+      
+    #set up a way to invoke function from DynamoDB stream - HACK VERSION
     events:
-      - stream:
-          type: dynamodb
-          arn:
-            Fn::GetAtt:
-              - MailboxesDynamoDbTable
-              - StreamArn
-          batchSize: 1  
+      - stream: 
+          arn: "arn:aws:dynamodb:#{AWS::Region}:#{AWS::AccountId}:table/mailbox-${opt:stage, self:provider.stage}/stream/2018-04-09T23:50:31.508"
+          batchSize: 1 
+          startingPosition: LATEST
+          enabled: true
+ 
   beginProvisioning:  
     handler: beginProvisioning.begin  
   avoidTheNoid:  

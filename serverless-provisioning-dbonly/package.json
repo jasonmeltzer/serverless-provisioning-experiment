@@ -1,0 +1,9 @@
+{
+  "name": "serverless-provisioning-db",
+  "version": "1.0.0",
+  "description": "Serverless DynamoDB",
+  "repository": "",
+  "dependencies": {
+    "aws-sdk": "^2.73.0"
+  }
+}
