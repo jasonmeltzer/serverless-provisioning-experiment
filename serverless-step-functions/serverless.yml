@@ -36,10 +36,6 @@ resources:
         Ref: ProvisioningStateMachine   #Even though the name of the step function is camel case we have to capitalize, not sure why.
 
 
-# This is a weird hack that lets me get at a variable exported by another project in cloudformation. It works!
-custom: 
-  db-only-service: serverless-provisioning-dbonly-${opt:stage, self:provider.stage}
-
 functions:
   dynamoChangeHandler:
     handler: dynamoChangeHandler.process
@@ -52,8 +48,6 @@ functions:
     #set up a way to invoke function from DynamoDB stream 
     events:
       - stream: 
-          #arn: ${cf:${self:custom.db-only-service}.mailboxesDynamoDbTableStreamArn} # I'm able to use the hack above to get the CloudFormation variable
-                                                                                    # that represents the ARN of the DynamoDB stream
           arn: ${cf:serverless-provisioning-dbonly-${opt:stage, self:provider.stage}.mailboxesDynamoDbTableStreamArn}
           batchSize: 1 
           startingPosition: LATEST
