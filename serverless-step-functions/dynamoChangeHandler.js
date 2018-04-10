@@ -9,24 +9,48 @@ module.exports.process = (event, context, callback) => {
 	
 	// The provisioning state machine, defined in the resources/Outputs section of serverless.yml
 	var provisioningStateMachineArn = process.env.provisioningstatemachine_arn; 
-	console.log("provisioning state machine arn:", provisioningStateMachineArn);
+	//console.log("provisioning state machine arn:", provisioningStateMachineArn);
 	
 	// The deletion state machine, defined in another project 'provisioning-steps-java' and imported in serverless.yml
 	var deletionStateMachineArn = process.env.deletionstatemachine_arn; 
-	console.log("deletion state machine arn:", deletionStateMachineArn);
+	//console.log("deletion state machine arn:", deletionStateMachineArn);
 	
 	var eventName = event.Records[0].eventName;
-	if (eventName.toUpperCase() === "INSERT") {
-		console.log("A new row appeared");
-		handleInsertOrUpdate(event, provisioningStateMachineArn);
-	} else if (eventName.toUpperCase() === "MODIFY") {
-		console.log("Someone changed something")
+	if (eventName.toUpperCase() === "INSERT" || eventName.toUpperCase() === "MODIFY") {
+		console.log("An item was inserted or modified");
+		
+		if (typeof event.Records[0].dynamodb.NewImage.mailboxStatus === "undefined") {
+			var newMailboxStatus = 'undefined';
+		} else {
+			var newMailboxStatus = event.Records[0].dynamodb.NewImage.mailboxStatus.S;
+		}
+		
+		// Handle deletes
+		if (newMailboxStatus === "delete-requested") {
+			handleDelete(event, deletionStateMachineArn);
+			return;
+		}
+		
+		// Make sure this isn't responding to a status update that was caused by kicking off the state machine
+		// Only statuses of 'initial' and 'update-requested' are expected values to be dealt with.
+		// undefined should not happen, but is left here for testing.
+		let allowedStatuses = new Set();
+		allowedStatuses.add('initial');
+		allowedStatuses.add('update-requested');
+		allowedStatuses.add('undefined');
+		
+		console.log("New mailbox status:", newMailboxStatus);
+		if (!allowedStatuses.has(newMailboxStatus)) {
+			console.log("New mailbox status not undefined and not in allowed set to proceed. Exiting.");
+			return;
+		}
+		
 		handleInsertOrUpdate(event, provisioningStateMachineArn);
 	} else if (eventName.toUpperCase() === "REMOVE") {
-		console.log("Someone deleted some stuff")
-		handleDelete(event, deletionStateMachineArn);
+		// Removals should not happen directly. The deleteMailbox lambda function actually marks the mailbox as 'delete-requested'.
+		console.log("A row was deleted. Ignoring...");
 	} else {
-		console.log("I have no idea what happened.")
+		console.log("I have no idea what happened.");
 		return;
 	}
 	
@@ -44,25 +68,6 @@ module.exports.process = (event, context, callback) => {
 
 
 function handleInsertOrUpdate(event, stateMachineArn) {
-	
-	// Make sure this isn't responding to a status update that was caused by kicking off the state machine
-	// Only statuses of 'initial' and 'update-requested' are expected values to be dealt with.
-	// undefined should not happen, but is left here for testing.
-	if (typeof event.Records[0].dynamodb.NewImage.mailboxStatus === "undefined") {
-		var newMailboxStatus = 'undefined';
-	} else {
-		var newMailboxStatus = event.Records[0].dynamodb.NewImage.mailboxStatus.S;
-	}
-	let allowedStatuses = new Set();
-	allowedStatuses.add('initial');
-	allowedStatuses.add('update-requested');
-	allowedStatuses.add('undefined');
-	
-	console.log("New mailbox status:", newMailboxStatus);
-	if (!allowedStatuses.has(newMailboxStatus)) {
-		console.log("New mailbox status not undefined and not in allowed set to proceed. Exiting.");
-		return;
-	}
 		
     var inputArr = {};
 	inputArr['id'] = event.Records[0].dynamodb.Keys.id.S;

@@ -47,8 +47,12 @@ stepFunctions:
             method: GET
       definition:
         Comment: "A fake engine, using Amazon States Language and Lambda"
-        StartAt: DeletionHandler
+        StartAt: Wait1
         States:
+          Wait1:
+            Type: Wait
+            Seconds: 30
+            Next: DeletionHandler
           DeletionHandler:
             Type: Task
             Resource: "arn:aws:lambda:#{AWS::Region}:#{AWS::AccountId}:function:${self:service}-${opt:stage}-deletionHandler"

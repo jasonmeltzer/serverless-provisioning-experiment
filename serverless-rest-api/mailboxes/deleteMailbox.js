@@ -5,15 +5,10 @@ const AWS = require('aws-sdk'); // eslint-disable-line import/no-extraneous-depe
 const dynamoDb = new AWS.DynamoDB.DocumentClient();
 
 module.exports.delete = (event, context, callback) => {
-  const params = {
-    TableName: process.env.DYNAMODB_TABLE_MBOX,
-    Key: {
-      id: event.pathParameters.id,
-    },
-  };
-
-  // delete the mailbox from the database
-  dynamoDb.delete(params, (error) => {
+  const timestamp = new Date().getTime();  
+	
+  // Instead of directly deleting the item, this function will mark it for deletion by a workflow 
+  /*dynamoDb.delete(params, (error) => {
     // handle potential errors
     if (error) {
       console.error(error);
@@ -21,6 +16,32 @@ module.exports.delete = (event, context, callback) => {
         statusCode: error.statusCode || 501,
         headers: { 'Content-Type': 'text/plain' },
         body: 'Couldn\'t remove the mailbox item.',
+      });
+      return;
+  }*/
+
+  const params = {
+    TableName: process.env.DYNAMODB_TABLE_MBOX,
+	  Key: {
+	    id: event.pathParameters.id,
+      },
+      ExpressionAttributeValues: {
+		':updatedAt': timestamp,
+		':mailboxStatus': 'delete-requested',
+	  },
+	  UpdateExpression: 'SET updatedAt = :updatedAt, mailboxStatus = :mailboxStatus',
+	  ReturnValues: 'ALL_NEW',
+  };
+
+  // update the mailbox in the database
+  dynamoDb.update(params, (error, result) => {
+    // handle potential errors
+	if (error) {
+	  console.error(error);
+	  callback(null, {
+	    statusCode: error.statusCode || 501,
+		headers: { 'Content-Type': 'text/plain' },
+		body: 'Couldn\'t fetch the mailbox item.',
       });
       return;
     }
