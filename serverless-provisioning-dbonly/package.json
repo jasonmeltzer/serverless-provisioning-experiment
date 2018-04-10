@@ -1,7 +1,7 @@
 {
-  "name": "serverless-provisioning-db",
+  "name": "serverless-provisioning-dbonly",
   "version": "1.0.0",
-  "description": "Serverless DynamoDB",
+  "description": "Serverless DynamoDB Definition",
   "repository": "",
   "dependencies": {
     "aws-sdk": "^2.73.0"

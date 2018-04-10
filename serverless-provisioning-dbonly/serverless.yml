@@ -21,7 +21,7 @@ resources:
         
     MailboxesDynamoDbTable:
       Type: 'AWS::DynamoDB::Table'
-      DeletionPolicy: Retain #retain table and data between deployments. Can use "Delete" to delete table between deployments.
+      DeletionPolicy: Delete #delete table between deployments. Can use "Retain" to retain table and data between deployments. Wouldn't make sense here.
       Properties:
         AttributeDefinitions:
           -
@@ -48,3 +48,10 @@ resources:
       Value: "mailbox-${opt:stage, self:provider.stage}"
       Export:
         Name: mailboxesDynamoDbTableName
+    #and, most importantly, the stream for the table! This is critical so we can use it in another project to tie the stream to a lambda
+    mailboxesDynamoDbTableStreamArn:
+      Description: The ARN of the DynamoDB stream of the mailboxes table
+      Value:
+        Fn::GetAtt: [ MailboxesDynamoDbTable, StreamArn ]
+      Export:
+        Name: mailboxesDynamoDbTableStreamArn

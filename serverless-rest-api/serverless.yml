@@ -6,7 +6,8 @@ provider:
   name: aws
   runtime: nodejs6.10
   environment:
-    DYNAMODB_TABLE_MBOX: mailbox-${opt:stage, self:provider.stage}
+    #reference the output variable mailboxDynamoDbTableName defined in serverless-provisioning-dbonly project (in the appropriate stage)
+    DYNAMODB_TABLE_MBOX: ${cf:serverless-provisioning-dbonly-${opt:stage, self:provider.stage}.mailboxesDynamoDbTableName}   
   iamRoleStatements:
     - Effect: Allow
       Action:
@@ -16,7 +17,9 @@ provider:
         - dynamodb:PutItem
         - dynamodb:UpdateItem
         - dynamodb:DeleteItem
-      Resource: "arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.DYNAMODB_TABLE_MBOX}"
+      Resource: 
+        #reference the output variable mailboxDynamoDbTableArn defined in serverless-provisioning-dbonly project (in the appropriate stage)
+        ${cf:serverless-provisioning-dbonly-${opt:stage, self:provider.stage}.mailboxesDynamoDbTableArn} 
 
 functions:
   createMailbox:
@@ -59,25 +62,3 @@ functions:
           method: delete
           cors: true
 
-
-resources:
-  Resources:
-        
-    MailboxesDynamoDbTable: #eventually this should be defined outside of this file since CloudFormation does not support global tables
-      Type: 'AWS::DynamoDB::Table'
-      DeletionPolicy: Retain #retain table and data between deployments. Can use "Delete" to delete table between deployments.
-      Properties:
-        AttributeDefinitions:
-          -
-            AttributeName: id
-            AttributeType: S
-        KeySchema:
-          -
-            AttributeName: id
-            KeyType: HASH
-        ProvisionedThroughput:
-          ReadCapacityUnits: 1
-          WriteCapacityUnits: 1
-        TableName: ${self:provider.environment.DYNAMODB_TABLE_MBOX}
-        StreamSpecification:
-          StreamViewType: NEW_AND_OLD_IMAGES

@@ -10,7 +10,6 @@ provider:
   environment:
     #reference the output variable mailboxDynamoDbTableName defined in serverless-provisioning-dbonly project (in the appropriate stage)
     DYNAMODB_TABLE_MBOX: ${cf:serverless-provisioning-dbonly-${opt:stage, self:provider.stage}.mailboxesDynamoDbTableName}   
-    DYNAMODB_TABLE_MBOX_ARN: ${cf:serverless-provisioning-dbonly-${opt:stage, self:provider.stage}.mailboxesDynamoDbTableArn}   
   iamRoleStatements:
     - Effect: Allow     # allow the step functions state machine to be executed by another lambda
       Action:
@@ -24,12 +23,6 @@ provider:
         - dynamodb:PutItem
         - dynamodb:UpdateItem
         - dynamodb:DeleteItem
-        
-        #not sure if these are needed, might be for hooking up the stream?
-        #- dynamodb:GetRecords
-        #- dynamodb:GetShardIterator
-        #- dynamodb:DescribeStream
-        #- dynamodb:ListStreams
       Resource: 
         #reference the output variable mailboxDynamoDbTableArn defined in serverless-provisioning-dbonly project (in the appropriate stage)
         ${cf:serverless-provisioning-dbonly-${opt:stage, self:provider.stage}.mailboxesDynamoDbTableArn} 
@@ -42,6 +35,11 @@ resources:
       Value:
         Ref: ProvisioningStateMachine   #Even though the name of the step function is camel case we have to capitalize, not sure why.
 
+
+# This is a weird hack that lets me get at a variable exported by another project in cloudformation. It works!
+custom: 
+  db-only-service: serverless-provisioning-dbonly-${opt:stage, self:provider.stage}
+
 functions:
   dynamoChangeHandler:
     handler: dynamoChangeHandler.process
@@ -50,11 +48,13 @@ functions:
       provisioningstatemachine_arn: ${self:resources.Outputs.ProvisioningStateMachineProxy.Value} 
       # also get a handle on the output value from the Java project so this function can kick off the deletion state machine defined in that project
       deletionstatemachine_arn: ${cf:provisioning-steps-java-${opt:stage, self:provider.stage}.DeletionStateMachineProxy} 
-      
-    #set up a way to invoke function from DynamoDB stream - HACK VERSION
+    
+    #set up a way to invoke function from DynamoDB stream 
     events:
       - stream: 
-          arn: "arn:aws:dynamodb:#{AWS::Region}:#{AWS::AccountId}:table/mailbox-${opt:stage, self:provider.stage}/stream/2018-04-09T23:50:31.508"
+          #arn: ${cf:${self:custom.db-only-service}.mailboxesDynamoDbTableStreamArn} # I'm able to use the hack above to get the CloudFormation variable
+                                                                                    # that represents the ARN of the DynamoDB stream
+          arn: ${cf:serverless-provisioning-dbonly-${opt:stage, self:provider.stage}.mailboxesDynamoDbTableStreamArn}
           batchSize: 1 
           startingPosition: LATEST
           enabled: true

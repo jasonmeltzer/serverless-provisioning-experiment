@@ -24,6 +24,22 @@ serverless plugin install --name serverless-pseudo-parameters
 
 The recommended order to deploy these projects:
 
+
+serverless-provisioning-dbonly (a resource-only project that defines the dynamodb database -- you'll need this in every region you plan to work with):
+```
+serverless deploy --region us-west-2 --stage dev
+serverless deploy --region us-east-1 --stage dev
+```
+
+
+This configuration relies on the "global tables" feature of DynamoDB, so you'll also need to run this command:
+```
+aws dynamodb create-global-table --global-table-name mailbox-dev --replication-group RegionName=us-west-2 RegionName=us-east-1 --region us-west-2
+```
+(Replace regions and "mailbox-dev" as appropriate based on "stage" param)
+
+
+
 serverless-rest-api:
 ```
 serverless deploy --region us-west-2 --stage dev
@@ -41,20 +57,14 @@ serverless deploy --region us-east-1 --stage dev
 ```
 
 
-This configuration relies on the "global tables" feature of DynamoDB, so you'll also need to run this command:
+
+
+
+To clean up, run these in the reverse order as above:
+
+serverless-step-functions:
 ```
-aws dynamodb create-global-table --global-table-name mailbox-dev --replication-group RegionName=us-west-2 RegionName=us-east-1 --region us-west-2
-```
-(Replace regions and "mailbox-dev" as appropriate based on "stage" param)
-
-
-
-
-To clean up:
-
-serverless-rest-api:
-```
-serverless remove --region us-west-2 --stage dev
+serverless remove --region us-east-1 --stage dev
 ```
 
 serverless-step-functions-java:
@@ -63,7 +73,17 @@ mvn clean
 serverless remove --region us-east-1 --stage dev
 ```
 
-serverless-step-functions:
+serverless-rest-api:
 ```
+serverless remove --region us-west-2 --stage dev
+```
+
+serverless-provisioning-dbonly (I wouldn't recommend removing the db service as it will delete the table, but if you need to):
+```
+serverless remove --region us-west-2 --stage dev
 serverless remove --region us-east-1 --stage dev
 ```
+
+
+
+
