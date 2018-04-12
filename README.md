@@ -61,7 +61,7 @@ serverless deploy --region us-east-1 --stage dev
 
 
 
-To clean up, run these in the reverse order as above:
+# To clean up, run these in the reverse order as above:
 
 ## serverless-step-functions:
 ```
