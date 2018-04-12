@@ -1,14 +1,18 @@
-This project was adapted from the example "AWS Serverless REST API example in NodeJS" on serverless.com. To install, run:
-npm install -g serverless
+This project was adapted from the example "AWS Serverless REST API example in NodeJS" on serverless.com. If you haven't already done so, install the serverless framework:
+```npm install -g serverless
+```
 
 Then create an IAM user for the Serverless framework (https://serverless.com/framework/docs/providers/aws/guide/credentials/):
-serverless config credentials --provider aws --key <KEY_ID> --secret <SECRET>
+```serverless config credentials --provider aws --key <KEY_ID> --secret <SECRET>
+```
 
 Deploy using:
-serverless deploy --region us-west-2
+```serverless deploy --region us-west-2
+```
 
 Uninstall:
-serverless remove --region us-west-2
+```serverless remove --region us-west-2
+```
 
 ## Usage
 
