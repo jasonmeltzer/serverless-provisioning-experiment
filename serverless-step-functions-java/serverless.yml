@@ -34,6 +34,8 @@ resources:
         
 
 functions:
+  checkConfirmDeletion:
+    handler: com.godaddy.CheckConfirmDeletion::handleRequest
   deletionHandler:
     handler: com.godaddy.DeletionHandler
           
@@ -41,22 +43,29 @@ stepFunctions:
   stateMachines:
     deletionStateMachine:
       name: deletionStateMachine
-      events:
-        - http:
-            path: begin-deletion
-            method: GET
       definition:
         Comment: "A fake engine, using Amazon States Language and Lambda"
         StartAt: Wait1
         States:
           Wait1:
             Type: Wait
-            Seconds: 30
+            Seconds: 5
+            Next: CheckConfirmDeletion
+          CheckConfirmDeletion:
+            Type: Task
+            Resource: "arn:aws:lambda:#{AWS::Region}:#{AWS::AccountId}:function:${self:service}-${opt:stage}-checkConfirmDeletion"
             Next: DeletionHandler
+            Catch:
+            - ErrorEquals:
+              - com.godaddy.DeleteNotConfirmedException
+              Next: DeleteNotConfirmed
           DeletionHandler:
             Type: Task
             Resource: "arn:aws:lambda:#{AWS::Region}:#{AWS::AccountId}:function:${self:service}-${opt:stage}-deletionHandler"
-            End: true 
+            End: true
+          DeleteNotConfirmed:
+            Type: Pass 
+            End: true
        
          
 plugins:

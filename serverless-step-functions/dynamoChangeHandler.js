@@ -104,11 +104,14 @@ function handleDelete(event, stateMachineArn) {
 	var inputArr = {};
 	inputArr['id'] = event.Records[0].dynamodb.Keys.id.S;
 	
-	if (event.Records[0].dynamodb.OldImage.domain) {
-		inputArr['domain'] = event.Records[0].dynamodb.OldImage.domain.S;
+	if (event.Records[0].dynamodb.NewImage.domain) {
+		inputArr['domain'] = event.Records[0].dynamodb.NewImage.domain.S;
 	}
-	if (event.Records[0].dynamodb.OldImage.username) {
-		inputArr['username'] = event.Records[0].dynamodb.OldImage.username.S;
+	if (event.Records[0].dynamodb.NewImage.username) {
+		inputArr['username'] = event.Records[0].dynamodb.NewImage.username.S;
+	}
+	if (event.Records[0].dynamodb.NewImage.deleteConfirmRequired) {
+		inputArr['deleteConfirmRequired'] = event.Records[0].dynamodb.NewImage.deleteConfirmRequired.S;
 	}
 	
 	var params = {

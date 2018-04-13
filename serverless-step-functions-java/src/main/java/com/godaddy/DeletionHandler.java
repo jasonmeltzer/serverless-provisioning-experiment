@@ -60,7 +60,9 @@ public class DeletionHandler implements RequestHandler<Map<String, Object>, ApiG
 		}
 		
 		// Delete the mailbox
-		deleteItem(id);
+		if (id != null) {
+			deleteItem(id);
+		}
 		
 
 		Map<String, String> headers = new HashMap<>();

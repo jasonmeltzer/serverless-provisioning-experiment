@@ -1,12 +1,17 @@
 'use strict';
 
 const AWS = require('aws-sdk'); // eslint-disable-line import/no-extraneous-dependencies
+const crypto = require('crypto');
 
 const dynamoDb = new AWS.DynamoDB.DocumentClient();
 
 module.exports.delete = (event, context, callback) => {
   const timestamp = new Date().getTime();  
-	
+  const data = JSON.parse(event.body);	
+  
+  var eventText = JSON.stringify(event, null, 2);
+  console.log("Received event:", eventText);
+  
   // Instead of directly deleting the item, this function will mark it for deletion by a workflow 
   /*dynamoDb.delete(params, (error) => {
     // handle potential errors
@@ -19,9 +24,9 @@ module.exports.delete = (event, context, callback) => {
       });
       return;
   }*/
-
-  const params = {
-    TableName: process.env.DYNAMODB_TABLE_MBOX,
+  
+  var params = {
+      TableName: process.env.DYNAMODB_TABLE_MBOX,
 	  Key: {
 	    id: event.pathParameters.id,
       },

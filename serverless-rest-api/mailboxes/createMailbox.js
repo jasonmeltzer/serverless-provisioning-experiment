@@ -2,7 +2,7 @@
 
 const uuid = require('uuid');
 const AWS = require('aws-sdk'); // eslint-disable-line import/no-extraneous-dependencies
-
+const crypto = require('crypto');
 const dynamoDb = new AWS.DynamoDB.DocumentClient();
 
 module.exports.create = (event, context, callback) => {
@@ -28,7 +28,7 @@ module.exports.create = (event, context, callback) => {
 	    return;
   }
 
-  const params = {
+  var params = {
     TableName: process.env.DYNAMODB_TABLE_MBOX,
     Item: {
       id: uuid.v1(),
@@ -39,6 +39,15 @@ module.exports.create = (event, context, callback) => {
       mailboxStatus: "initial",
     },
   };
+  
+  // if the user asked for a 'deleteConfirmRequired', add that to the Item values
+  if (data != null && data.deleteConfirmRequired != null && data.deleteConfirmRequired !== "undefined" &&
+      typeof data.deleteConfirmRequired === 'string') {
+	  if (data.deleteConfirmRequired === 'true' || data.deleteConfirmRequired === 'yes') {
+		  var confirmHash = crypto.randomBytes(20).toString('hex');
+		  params.Item["deleteConfirmRequired"] = confirmHash;
+	  }
+  }
 
   // write the mailbox to the database
   dynamoDb.put(params, (error) => {

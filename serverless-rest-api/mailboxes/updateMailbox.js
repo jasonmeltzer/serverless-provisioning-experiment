@@ -1,7 +1,7 @@
 'use strict';
 
 const AWS = require('aws-sdk'); // eslint-disable-line import/no-extraneous-dependencies
-
+const crypto = require('crypto');
 const dynamoDb = new AWS.DynamoDB.DocumentClient();
 
 module.exports.update = (event, context, callback) => {
@@ -29,7 +29,7 @@ module.exports.update = (event, context, callback) => {
 		  return;
   }
 
-  const params = {
+  var params = {
     TableName: process.env.DYNAMODB_TABLE_MBOX,
     Key: {
       id: event.pathParameters.id,
@@ -47,6 +47,27 @@ module.exports.update = (event, context, callback) => {
     UpdateExpression: 'SET #mailbox_domain = :domain, #mailbox_username = :username, updatedAt = :updatedAt, mailboxStatus = :mailboxStatus',
     ReturnValues: 'ALL_NEW',
   };
+  
+  // if the user asked for a 'deleteConfirmRequired', add that to the update values
+  if (data != null && data.deleteConfirmRequired != null && data.deleteConfirmRequired !== "undefined" &&
+      typeof data.deleteConfirmRequired === 'string') {
+	  if (data.deleteConfirmRequired === 'true' || data.deleteConfirmRequired === 'yes') {
+		  var confirmHash = crypto.randomBytes(20).toString('hex');
+		  
+		  params.ExpressionAttributeValues[':confirmHash'] = confirmHash;
+		  params.UpdateExpression += ', deleteConfirmRequired = :confirmHash';
+	  } else if (data.deleteConfirmRequired === 'false' || data.deleteConfirmRequired === 'no') {
+		  // TODO also allow them to turn off delete confirmations for Items that may have previously had one
+		  // This won't work, can't set to empty: params.UpdateExpression += ", deleteConfirmRequired = ''";
+		  console.error('Validation Failed');
+		  callback(null, {
+		      statusCode: 400,
+		      headers: { 'Content-Type': 'text/plain' },
+		      body: "You can't turn off 'deleteConfirmRequired' once it has been set.",
+		  });
+		  return;
+	  }
+  }
 
   // update the mailbox in the database
   dynamoDb.update(params, (error, result) => {

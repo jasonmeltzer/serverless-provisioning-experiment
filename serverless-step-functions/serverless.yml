@@ -80,7 +80,7 @@ stepFunctions:
             Next: Wait2
           Wait2:
             Type: Wait
-            Seconds: 30
+            Seconds: 15
             Next: AvoidTheNoid
           AvoidTheNoid:
             Type: Task
@@ -88,7 +88,7 @@ stepFunctions:
             Next: Wait3  
           Wait3:
             Type: Wait
-            Seconds: 30
+            Seconds: 15
             Next: WasNoidAvoided
           WasNoidAvoided:
             Type: Choice
@@ -105,7 +105,7 @@ stepFunctions:
             Next: CompleteProvisioning
           NoidNotAvoided:
             Type: Fail
-            Cause: "Noid caught you!"
+            Cause: "The Noid can't be beat"
           CompleteProvisioning: 
             End: true
             Type: Task
