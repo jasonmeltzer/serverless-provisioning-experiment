@@ -94,10 +94,10 @@ stepFunctions:
             Type: Choice
             Choices: 
               - Variable: "$.value"
-                NumericGreaterThan: 0.1
+                NumericGreaterThan: 0.25
                 Next: NoidAvoided
               - Variable: "$.value"
-                NumericLessThan: 0.1
+                NumericLessThan: 0.25
                 Next: NoidNotAvoided
             Default: NoidNotAvoided
           NoidAvoided:
