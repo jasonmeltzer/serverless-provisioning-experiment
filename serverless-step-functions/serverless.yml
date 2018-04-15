@@ -53,8 +53,8 @@ functions:
  
   beginProvisioning:  
     handler: beginProvisioning.begin  
-  avoidTheNoid:  
-    handler: avoidTheNoid.avoidNoid  
+  callOutsideSystem:  
+    handler: callOutsideSystem.call  
   completeProvisioning:  
     handler: completeProvisioning.complete    
             
@@ -81,31 +81,31 @@ stepFunctions:
           Wait2:
             Type: Wait
             Seconds: 15
-            Next: AvoidTheNoid
-          AvoidTheNoid:
+            Next: CallOutsideSystem
+          CallOutsideSystem:
             Type: Task
-            Resource: "arn:aws:lambda:#{AWS::Region}:#{AWS::AccountId}:function:${self:service}-${opt:stage}-avoidTheNoid"
+            Resource: "arn:aws:lambda:#{AWS::Region}:#{AWS::AccountId}:function:${self:service}-${opt:stage}-callOutsideSystem"
             Next: Wait3  
           Wait3:
             Type: Wait
             Seconds: 15
-            Next: WasNoidAvoided
-          WasNoidAvoided:
+            Next: DidOutsideSystemDoIt
+          DidOutsideSystemDoIt:
             Type: Choice
             Choices: 
               - Variable: "$.value"
                 NumericGreaterThan: 0.25
-                Next: NoidAvoided
+                Next: OutsideSystemDidIt
               - Variable: "$.value"
                 NumericLessThan: 0.25
-                Next: NoidNotAvoided
-            Default: NoidNotAvoided
-          NoidAvoided:
+                Next: OutsideSystemFailed
+            Default: OutsideSystemFailed
+          OutsideSystemDidIt:
             Type: Pass
             Next: CompleteProvisioning
-          NoidNotAvoided:
+          OutsideSystemFailed:
             Type: Fail
-            Cause: "The Noid can't be beat"
+            Cause: "External system didn't do it's job"
           CompleteProvisioning: 
             End: true
             Type: Task

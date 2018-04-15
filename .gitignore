@@ -13,3 +13,4 @@ serverless-provisioning-dbonly/.serverless
 serverless-step-functions-java/target
 
 .DS_Store
+serverless-step-functions-java/src/main/java/com/.DS_Store

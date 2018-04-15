@@ -3,7 +3,7 @@
 var AWS = require('aws-sdk'),
     documentClient = new AWS.DynamoDB.DocumentClient();
 
-module.exports.avoidNoid = (event, context, callback) => {
+module.exports.call = (event, context, callback) => {
 	
 	 var eventText = JSON.stringify(event, null, 2);
 	 console.log("Received event:", eventText);
