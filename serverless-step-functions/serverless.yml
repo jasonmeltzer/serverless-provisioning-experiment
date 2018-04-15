@@ -72,7 +72,7 @@ stepFunctions:
         States:
           Wait1:
             Type: Wait
-            Seconds: 15
+            Seconds: 5
             Next: BeginProvisioning
           BeginProvisioning:
             Type: Task
@@ -80,15 +80,28 @@ stepFunctions:
             Next: Wait2
           Wait2:
             Type: Wait
-            Seconds: 15
+            Seconds: 5
             Next: CallOutsideSystem
           CallOutsideSystem:
             Type: Task
             Resource: "arn:aws:lambda:#{AWS::Region}:#{AWS::AccountId}:function:${self:service}-${opt:stage}-callOutsideSystem"
+            Retry: # https://docs.aws.amazon.com/step-functions/latest/dg/concepts-error-handling.html
+            - ErrorEquals:
+              - external-failure
+              IntervalSeconds: 4 # wait 4 seconds before trying again
+              MaxAttempts: 3 # number of retries
+              BackoffRate: 2.5 # the FACTOR by which the retry interval increases during each attempt 
+                               # (with 3 retries and an interval of 4, this will retry after 4 sec, 10 secs, and 25 secs for the three retries)
+            - ErrorEquals:
+              - States.TaskFailed # generic error defined by AWS
+              IntervalSeconds: 5 # wait 5 seconds before trying again
+              MaxAttempts: 2 # number of retries
+              BackoffRate: 1.5 # the FACTOR by which the retry interval increases during each attempt 
+                               # (with 2 retries and an interval of 5, this will retry after 5 sec and 7.5 secs for the two retries)
             Next: Wait3  
           Wait3:
             Type: Wait
-            Seconds: 15
+            Seconds: 5
             Next: DidOutsideSystemDoIt
           DidOutsideSystemDoIt:
             Type: Choice
