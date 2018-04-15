@@ -1,4 +1,4 @@
-package com.godaddy;
+package com.example;
 
 import java.util.Date;
 import java.util.HashMap;

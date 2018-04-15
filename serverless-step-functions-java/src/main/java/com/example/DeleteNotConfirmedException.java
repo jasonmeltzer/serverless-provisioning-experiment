@@ -1,4 +1,4 @@
-package com.godaddy;
+package com.example;
 
 
 public class DeleteNotConfirmedException extends Exception {

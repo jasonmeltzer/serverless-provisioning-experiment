@@ -35,9 +35,9 @@ resources:
 
 functions:
   checkConfirmDeletion:
-    handler: com.godaddy.CheckConfirmDeletion::handleRequest
+    handler: com.example.CheckConfirmDeletion::handleRequest
   deletionHandler:
-    handler: com.godaddy.DeletionHandler
+    handler: com.example.DeletionHandler
           
 stepFunctions:
   stateMachines:
@@ -57,7 +57,7 @@ stepFunctions:
             Next: DeletionHandler
             Catch:
             - ErrorEquals:
-              - com.godaddy.DeleteNotConfirmedException
+              - com.example.DeleteNotConfirmedException
               Next: DeleteNotConfirmed
           DeletionHandler:
             Type: Task
