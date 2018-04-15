@@ -18,14 +18,13 @@ module.exports.call = (event, context, callback) => {
 	     },
 		 UpdateExpression: "set mailboxStatus = :s",
 		 ExpressionAttributeValues:{
-		     ":s": "avoiding-the-noid"
+		     ":s": "calling-outside-system"
 		 },
 		 ReturnValues:"UPDATED_NEW"
 	 };
 
 	 documentClient.update(dynamoParams, function(err, data){
 	     if (err) console.log(err);
-	     // else console.log(data);
 	 });
 	 
 	 // input for the next step in the state machine
