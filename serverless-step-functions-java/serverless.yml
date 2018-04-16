@@ -5,9 +5,10 @@ frameworkVersion: ">=1.2.0 <2.0.0"
 provider:
   name: aws
   runtime: java8
+  stage: ${opt:stage, 'dev'} # default to stage 'dev', allow override from CLI
   environment:
     #reference the output variable mailboxDynamoDbTableName defined in serverless-provisioning-dbonly project (in the appropriate stage)
-    DYNAMODB_TABLE_MBOX: ${cf:serverless-provisioning-dbonly-${opt:stage, self:provider.stage}.mailboxesDynamoDbTableName} 
+    DYNAMODB_TABLE_MBOX: ${cf:serverless-provisioning-dbonly-${self:provider.stage}.mailboxesDynamoDbTableName} 
   iamRoleStatements:
     - Effect: Allow
       Action:
@@ -20,7 +21,7 @@ provider:
         - dynamodb:DeleteItem
       Resource:
         #reference the output variable mailboxDynamoDbTableArn defined in serverless-provisioning-dbonly project (in the appropriate stage)
-        ${cf:serverless-provisioning-dbonly-${opt:stage, self:provider.stage}.mailboxesDynamoDbTableArn} 
+        ${cf:serverless-provisioning-dbonly-${self:provider.stage}.mailboxesDynamoDbTableArn} 
   
 package:
   artifact: target/provisioning-steps-java.jar
@@ -53,7 +54,7 @@ stepFunctions:
             Next: CheckConfirmDeletion
           CheckConfirmDeletion:
             Type: Task
-            Resource: "arn:aws:lambda:#{AWS::Region}:#{AWS::AccountId}:function:${self:service}-${opt:stage}-checkConfirmDeletion"
+            Resource: "arn:aws:lambda:#{AWS::Region}:#{AWS::AccountId}:function:${self:service}-${self:provider.stage}-checkConfirmDeletion"
             Next: DeletionHandler
             Catch:
             - ErrorEquals:
@@ -61,7 +62,7 @@ stepFunctions:
               Next: DeleteNotConfirmed
           DeletionHandler:
             Type: Task
-            Resource: "arn:aws:lambda:#{AWS::Region}:#{AWS::AccountId}:function:${self:service}-${opt:stage}-deletionHandler"
+            Resource: "arn:aws:lambda:#{AWS::Region}:#{AWS::AccountId}:function:${self:service}-${self:provider.stage}-deletionHandler"
             End: true
           DeleteNotConfirmed:
             Type: Pass 

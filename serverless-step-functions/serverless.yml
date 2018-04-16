@@ -4,10 +4,10 @@ frameworkVersion: ">=1.1.0 <2.0.0"
 provider:
   name: aws
   runtime: nodejs6.10
-  stage: dev   #default stage - not sure why this isn't needed in other project
+  stage: ${opt:stage, 'dev'} # default to stage 'dev', allow override from CLI
   environment:
     #reference the output variable mailboxDynamoDbTableName defined in serverless-provisioning-dbonly project (in the appropriate stage)
-    DYNAMODB_TABLE_MBOX: ${cf:serverless-provisioning-dbonly-${opt:stage, self:provider.stage}.mailboxesDynamoDbTableName}   
+    DYNAMODB_TABLE_MBOX: ${cf:serverless-provisioning-dbonly-${self:provider.stage}.mailboxesDynamoDbTableName}   
   iamRoleStatements:
     - Effect: Allow     # allow the step functions state machine to be executed by another lambda
       Action:
@@ -23,7 +23,7 @@ provider:
         - dynamodb:DeleteItem
       Resource: 
         #reference the output variable mailboxDynamoDbTableArn defined in serverless-provisioning-dbonly project (in the appropriate stage)
-        ${cf:serverless-provisioning-dbonly-${opt:stage, self:provider.stage}.mailboxesDynamoDbTableArn} 
+        ${cf:serverless-provisioning-dbonly-${self:provider.stage}.mailboxesDynamoDbTableArn} 
     
 resources:
 
@@ -41,12 +41,12 @@ functions:
       # this gives the lambda a handle to execute the provisioning state machine (step functions)
       provisioningstatemachine_arn: ${self:resources.Outputs.ProvisioningStateMachineProxy.Value} 
       # also get a handle on the output value from the Java project so this function can kick off the deletion state machine defined in that project
-      deletionstatemachine_arn: ${cf:provisioning-steps-java-${opt:stage, self:provider.stage}.DeletionStateMachineProxy} 
+      deletionstatemachine_arn: ${cf:provisioning-steps-java-${self:provider.stage}.DeletionStateMachineProxy} 
     
     #set up a way to invoke function from DynamoDB stream 
     events:
       - stream: 
-          arn: ${cf:serverless-provisioning-dbonly-${opt:stage, self:provider.stage}.mailboxesDynamoDbTableStreamArn}
+          arn: ${cf:serverless-provisioning-dbonly-${self:provider.stage}.mailboxesDynamoDbTableStreamArn}
           batchSize: 1 
           startingPosition: LATEST
           enabled: true
@@ -102,7 +102,7 @@ stepFunctions:
             Next: BeginProvisioning
           BeginProvisioning:
             Type: Task
-            Resource: "arn:aws:lambda:#{AWS::Region}:#{AWS::AccountId}:function:${self:service}-${opt:stage}-beginProvisioning"
+            Resource: "arn:aws:lambda:#{AWS::Region}:#{AWS::AccountId}:function:${self:service}-${self:provider.stage}-beginProvisioning"
             Next: Wait2
           Wait2:
             Type: Wait
@@ -110,7 +110,7 @@ stepFunctions:
             Next: CallOutsideSystem
           CallOutsideSystem:
             Type: Task
-            Resource: "arn:aws:lambda:#{AWS::Region}:#{AWS::AccountId}:function:${self:service}-${opt:stage}-callOutsideSystem"
+            Resource: "arn:aws:lambda:#{AWS::Region}:#{AWS::AccountId}:function:${self:service}-${self:provider.stage}-callOutsideSystem"
             Retry: # https://docs.aws.amazon.com/step-functions/latest/dg/concepts-error-handling.html
             - ErrorEquals:
               - external-failure
@@ -148,7 +148,7 @@ stepFunctions:
           CompleteProvisioning: 
             End: true
             Type: Task
-            Resource: "arn:aws:lambda:#{AWS::Region}:#{AWS::AccountId}:function:${self:service}-${opt:stage}-completeProvisioning"               
+            Resource: "arn:aws:lambda:#{AWS::Region}:#{AWS::AccountId}:function:${self:service}-${self:provider.stage}-completeProvisioning"               
               
      
             

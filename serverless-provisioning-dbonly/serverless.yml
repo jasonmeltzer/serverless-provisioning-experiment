@@ -3,8 +3,9 @@ service: serverless-provisioning-dbonly
 provider:
   name: aws
   runtime: nodejs6.10
+  stage: ${opt:stage, 'dev'} # default to stage 'dev', allow override from CLI
   environment:
-    DYNAMODB_TABLE_MBOX: mailbox-${opt:stage, self:provider.stage}
+    DYNAMODB_TABLE_MBOX: mailbox-${self:provider.stage}
   iamRoleStatements:
     - Effect: Allow
       Action:
@@ -45,7 +46,7 @@ resources:
         Name: mailboxesDynamoDbTableArn
     #also give it the table name
     mailboxesDynamoDbTableName:
-      Value: "mailbox-${opt:stage, self:provider.stage}"
+      Value: "mailbox-${self:provider.stage}"
       Export:
         Name: mailboxesDynamoDbTableName
     #and, most importantly, the stream for the table! This is critical so we can use it in another project to tie the stream to a lambda
