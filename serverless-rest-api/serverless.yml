@@ -5,9 +5,10 @@ frameworkVersion: ">=1.1.0 <2.0.0"
 provider:
   name: aws
   runtime: nodejs6.10
+  stage: ${opt:stage, 'dev'} # default to stage 'dev', allow override from CLI
   environment:
     #reference the output variable mailboxDynamoDbTableName defined in serverless-provisioning-dbonly project (in the appropriate stage)
-    DYNAMODB_TABLE_MBOX: ${cf:serverless-provisioning-dbonly-${opt:stage, self:provider.stage}.mailboxesDynamoDbTableName}   
+    DYNAMODB_TABLE_MBOX: ${cf:serverless-provisioning-dbonly-${self:provider.stage}.mailboxesDynamoDbTableName}   
   iamRoleStatements:
     - Effect: Allow
       Action:
@@ -19,7 +20,7 @@ provider:
         - dynamodb:DeleteItem
       Resource: 
         #reference the output variable mailboxDynamoDbTableArn defined in serverless-provisioning-dbonly project (in the appropriate stage)
-        ${cf:serverless-provisioning-dbonly-${opt:stage, self:provider.stage}.mailboxesDynamoDbTableArn} 
+        ${cf:serverless-provisioning-dbonly-${self:provider.stage}.mailboxesDynamoDbTableArn} 
 
 functions:
   createMailbox:
