@@ -56,7 +56,33 @@ functions:
   callOutsideSystem:  
     handler: callOutsideSystem.call  
   completeProvisioning:  
-    handler: completeProvisioning.complete    
+    handler: completeProvisioning.complete   
+    
+  # As of now the serverless framework can't kick off step functions directly from a CloudWatch event
+  # https://github.com/horike37/serverless-step-functions/issues/102
+  # https://github.com/horike37/serverless-step-functions/issues/49
+  # Instead we have to define a lambda function that can watch for a step functions failure and restart the step functions.
+  # In many ways this function behaves the same way as dynamoChangeHandler above, except it is kicked off by CloudWatch instead of 
+  # a dynamo stream.
+  # TODO I'm not sure this will work either, unless it's defined as a scheduled event that looks at the DynamoDB table
+  # or somehow is hooked to a CloudWatch alarm. There doesn't seem to be a way to hook an event to a step function failure?
+  #provisioningStateMachineRetry:
+  #  handler: provisioningStateMachineRetry.retry
+  #  environment:
+      # this gives the lambda a handle to execute the provisioning state machine (step functions)
+  #    provisioningstatemachine_arn: ${self:resources.Outputs.ProvisioningStateMachineProxy.Value}
+  #  events:
+  #    - cloudwatchEvent:
+  #        name: 'provisioning-failed-cloudwatch-event'
+  #        event:
+  #          source:
+  #            - "aws.ec2"
+  #          detail-type:
+  #            - "EC2 Instance State-change Notification"
+  #          detail:
+  #            state:
+  #              - pending
+  #        enabled: true
             
 stepFunctions:
   stateMachines:
