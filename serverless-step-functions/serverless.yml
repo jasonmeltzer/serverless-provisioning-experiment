@@ -31,6 +31,9 @@ custom:
   alarmNotificationEmail: ${file(../config/config-${self:provider.stage}.yml):alarmNotificationEmail}
   sesFromAddress: ${file(../config/config-${self:provider.stage}.yml):sesFromAddress}
   
+  # set up a topic name to be used in SNS for failures events on the Provisioning State Machine
+  provisioningStateMachineFailureSnsTopicName: provisioning-state-machine-failure-${self:provider.stage}
+  
   alerts:
     dashboards: true
     
@@ -48,13 +51,16 @@ custom:
     #
       
 resources:
-
   Outputs:
     ProvisioningStateMachineProxy:
       Description: The ARN of the state machine
       Value:
         Ref: ProvisioningStateMachine   #Even though the name of the step function is camel case we have to capitalize, not sure why.
-
+  Resources:
+    ProvisioningStateMachineFailureSnsTopic: # Create a SNS topic to publish to when the ProvisioningStateMachine has an execution failure
+      Type: AWS::SNS::Topic
+      Properties:
+        TopicName: ${self:custom.provisioningStateMachineFailureSnsTopicName}
 
 functions:
   dynamoChangeHandler:
@@ -88,12 +94,22 @@ functions:
   # a dynamo stream.
   # TODO I'm not sure this will work either, unless it's defined as a scheduled event that looks at the DynamoDB table
   # or somehow is hooked to a CloudWatch alarm. There doesn't seem to be a way to hook an event to a step function failure?
-  #provisioningStateMachineRetry:
-  #  handler: provisioningStateMachineRetry.retry
-  #  environment:
+  provisioningStateMachineRetry:
+    handler: provisioningStateMachineRetry.retry
+    environment:
       # this gives the lambda a handle to execute the provisioning state machine (step functions)
-  #    provisioningstatemachine_arn: ${self:resources.Outputs.ProvisioningStateMachineProxy.Value}
-  #  events:
+      provisioningstatemachine_arn: ${self:resources.Outputs.ProvisioningStateMachineProxy.Value}
+    events:
+      - sns:   # https://serverless.com/framework/docs/providers/aws/events/sns/
+          arn: # I make no apologizes for the syntax that follows. I've made peace with it.
+            Fn::Join: # Reference the ARN of the SNS topic creates above under "Resources"
+              - ""
+              - - "arn:aws:sns:"
+                - Ref: "AWS::Region"
+                - ":"
+                - Ref: "AWS::AccountId"
+                - ":${self:custom.provisioningStateMachineFailureSnsTopicName}"
+          topicName: ${self:custom.provisioningStateMachineFailureSnsTopicName}
   #    - cloudwatchEvent:
   #        name: 'provisioning-failed-cloudwatch-event'
   #        event:
