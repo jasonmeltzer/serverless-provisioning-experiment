@@ -26,6 +26,27 @@ provider:
         #reference the output variable mailboxDynamoDbTableArn defined in serverless-provisioning-dbonly project (in the appropriate stage)
         ${cf:serverless-provisioning-dbonly-${self:provider.stage}.mailboxesDynamoDbTableArn} 
     
+custom:  
+  
+  alarmNotificationEmail: ${file(../config/config-${self:provider.stage}.yml):alarmNotificationEmail}
+  sesFromAddress: ${file(../config/config-${self:provider.stage}.yml):sesFromAddress}
+  
+  alerts:
+    dashboards: true
+    
+    #Attempting to define a metric alarm for step functions - can't figure out how to apply this definition to the state machine yet
+    definitions:  
+      customAlarm:
+        description: 'My custom alarm'
+        namespace: 'AWS/States'
+        metric: ExecutionsFailed
+        threshold: 1
+        statistic: Sum
+        period: 300
+        evaluationPeriods: 1
+        comparisonOperator: GreaterThanOrEqualToThreshold
+    #
+      
 resources:
 
   Outputs:
@@ -112,7 +133,7 @@ stepFunctions:
           CallOutsideSystem:
             Type: Task
             Resource: "arn:aws:lambda:#{AWS::Region}:#{AWS::AccountId}:function:${self:service}-${self:provider.stage}-callOutsideSystem"
-            Retry: # https://docs.aws.amazon.com/step-functions/latest/dg/concepts-error-handling.html
+            Retry: 
             - ErrorEquals:
               - external-failure
               IntervalSeconds: 4 # wait 4 seconds before trying again
@@ -125,6 +146,10 @@ stepFunctions:
               MaxAttempts: 2 # number of retries
               BackoffRate: 1.5 # the FACTOR by which the retry interval increases during each attempt 
                                # (with 2 retries and an interval of 5, this will retry after 5 sec and 7.5 secs for the two retries)
+            Catch:
+            - ErrorEquals:
+              - States.ALL # Catch-all
+              Next: OutsideSystemFailed
             Next: Wait3  
           Wait3:
             Type: Wait
@@ -135,12 +160,12 @@ stepFunctions:
             Choices: 
               - Variable: "$.value"
                 NumericGreaterThan: 0.25
-                Next: OutsideSystemDidIt
+                Next: OutsideSystemSucceeded
               - Variable: "$.value"
                 NumericLessThan: 0.25
                 Next: OutsideSystemFailed
             Default: OutsideSystemFailed
-          OutsideSystemDidIt:
+          OutsideSystemSucceeded:
             Type: Pass
             Next: CompleteProvisioning
           OutsideSystemFailed:

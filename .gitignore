@@ -14,3 +14,7 @@ serverless-step-functions-java/target
 
 .DS_Store
 serverless-step-functions-java/src/main/java/com/.DS_Store
+
+config/config-dev.yml
+config/config-test.yml
+config/config-prod.yml
