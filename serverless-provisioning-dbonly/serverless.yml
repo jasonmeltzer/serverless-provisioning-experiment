@@ -4,6 +4,7 @@ provider:
   name: aws
   runtime: nodejs6.10
   stage: ${opt:stage, 'dev'} # default to stage 'dev', allow override from CLI
+  profile: ${opt:stage, 'default'} # Allow override of AWS profile. This could also be used to deploy to diff AWS accounts per stage.
   environment:
     DYNAMODB_TABLE_MBOX: mailbox-${self:provider.stage}
   iamRoleStatements:

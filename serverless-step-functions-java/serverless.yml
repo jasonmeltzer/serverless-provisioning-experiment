@@ -6,6 +6,7 @@ provider:
   name: aws
   runtime: java8
   stage: ${opt:stage, 'dev'} # default to stage 'dev', allow override from CLI
+  profile: ${opt:stage, 'default'} # Allow override of AWS profile. This could also be used to deploy to diff AWS accounts per stage.
   environment:
     #reference the output variable mailboxDynamoDbTableName defined in serverless-provisioning-dbonly project (in the appropriate stage)
     DYNAMODB_TABLE_MBOX: ${cf:serverless-provisioning-dbonly-${self:provider.stage}.mailboxesDynamoDbTableName} 
