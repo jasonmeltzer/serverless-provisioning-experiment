@@ -22,6 +22,10 @@ serverless plugin install --name serverless-step-functions
 serverless plugin install --name serverless-pseudo-parameters
 ```
 
+Create a config file for each deployment stage (dev, test, etc.) in config/ using file format config-dev.yml, config-test.yml, etc. A sample file is included under config/config-{stage}.yml
+
+
+
 # The recommended order to deploy these projects:
 
 
