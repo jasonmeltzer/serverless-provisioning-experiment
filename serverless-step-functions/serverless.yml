@@ -90,10 +90,8 @@ functions:
   # https://github.com/horike37/serverless-step-functions/issues/102
   # https://github.com/horike37/serverless-step-functions/issues/49
   # Instead we have to define a lambda function that can watch for a step functions failure and restart the step functions.
-  # In many ways this function behaves the same way as dynamoChangeHandler above, except it is kicked off by CloudWatch instead of 
-  # a dynamo stream.
-  # TODO I'm not sure this will work either, unless it's defined as a scheduled event that looks at the DynamoDB table
-  # or somehow is hooked to a CloudWatch alarm. There doesn't seem to be a way to hook an event to a step function failure?
+  # In many ways this function behaves the same way as dynamoChangeHandler above, except it is kicked off by CloudWatch publishing
+  # to a SNS topic instead of reacting to a dynamo stream.
   provisioningStateMachineRetry:
     handler: provisioningStateMachineRetry.retry
     environment:
@@ -102,7 +100,7 @@ functions:
     events:
       - sns:   # https://serverless.com/framework/docs/providers/aws/events/sns/
           arn: # I make no apologizes for the syntax that follows. I've made peace with it.
-            Fn::Join: # Reference the ARN of the SNS topic creates above under "Resources"
+            Fn::Join: # Reference the ARN of the SNS topic created above under "Resources"
               - ""
               - - "arn:aws:sns:"
                 - Ref: "AWS::Region"
@@ -110,17 +108,6 @@ functions:
                 - Ref: "AWS::AccountId"
                 - ":${self:custom.provisioningStateMachineFailureSnsTopicName}"
           topicName: ${self:custom.provisioningStateMachineFailureSnsTopicName}
-  #    - cloudwatchEvent:
-  #        name: 'provisioning-failed-cloudwatch-event'
-  #        event:
-  #          source:
-  #            - "aws.ec2"
-  #          detail-type:
-  #            - "EC2 Instance State-change Notification"
-  #          detail:
-  #            state:
-  #              - pending
-  #        enabled: true
             
 stepFunctions:
   stateMachines:
