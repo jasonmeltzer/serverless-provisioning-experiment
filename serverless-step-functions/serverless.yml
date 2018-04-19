@@ -10,9 +10,11 @@ provider:
     #reference the output variable mailboxDynamoDbTableName defined in serverless-provisioning-dbonly project (in the appropriate stage)
     DYNAMODB_TABLE_MBOX: ${cf:serverless-provisioning-dbonly-${self:provider.stage}.mailboxesDynamoDbTableName}   
   iamRoleStatements:
-    - Effect: Allow     # allow the step functions state machine to be executed by another lambda
+    - Effect: Allow     # allow lambdas access to the history of state machines, as well the ability to execute them
       Action:
         - states:StartExecution
+        - states:GetExecutionHistory
+        - states:ListExecutions
       Resource: "*"
     - Effect: Allow   # allow the lambdas in this project to do database operations
       Action:
