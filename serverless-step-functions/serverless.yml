@@ -10,12 +10,18 @@ provider:
     #reference the output variable mailboxDynamoDbTableName defined in serverless-provisioning-dbonly project (in the appropriate stage)
     DYNAMODB_TABLE_MBOX: ${cf:serverless-provisioning-dbonly-${self:provider.stage}.mailboxesDynamoDbTableName}   
   iamRoleStatements:
-    - Effect: Allow     # allow lambdas access to the history of state machines, as well the ability to execute them
+    - Effect: Allow     # allow lambdas access to the history of state machines, as well the ability to create, describe, and execute them
       Action:
         - states:StartExecution
         - states:GetExecutionHistory
         - states:ListExecutions
+        - states:DescribeStateMachine
+        - states:CreateStateMachine
       Resource: "*"
+    - Effect: Allow     # give lambas the iam:PassRole because it's necessary for a lambda to be able to create a new state machine thru the SDK
+      Action:
+        - iam:PassRole
+      Resource: "arn:aws:iam::*:role/*"
     - Effect: Allow   # allow the lambdas in this project to do database operations
       Action:
         - dynamodb:Query

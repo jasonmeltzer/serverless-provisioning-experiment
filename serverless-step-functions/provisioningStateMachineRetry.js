@@ -19,30 +19,67 @@ module.exports.retry = (event, context, callback) => {
         statusFilter: "FAILED"
 	 };    
     
-    // Get executions of the state machine
-    stepfunctions.listExecutions(params, function(err, data) {
+    // Get failed executions of the state machine
+    stepfunctions.listExecutions(params, function(err, executionData) {
         if (err) console.log(err, err.stack); 
         else {
-        	console.log("Failed Execution History:", data); 
+        	console.log("Failed Execution List:", executionData); 
         	// Loop through the failed executions
-            if (data.executions.length > 0) {
-        	    for (var i = 0; i < data.executions.length; i++) {
-                    console.log(data.executions[i].executionArn);
+            if (executionData.executions.length > 0) {
+        	    for (var i = 0; i < executionData.executions.length; i++) {
+        	    	var execution = executionData.executions[i];
        
                     var params = {
-                    	    executionArn: data.executions[i].executionArn, 
-                    		maxResults: 0,
-                    		reverseOrder: true
+                    	executionArn: execution.executionArn, 
+                    	maxResults: 0,
+                    	reverseOrder: true
                     };
                     			 
                     // get the history for this particular execution of the state machine
                     stepfunctions.getExecutionHistory(params, function(err, historyData) {
-                    	// find the step that caused the failure
-                    	var failedState = findFailedState(err, historyData);	
-                    	if (failedState != null) console.log("found fail state", failedState);
-                    	else                     console.log("no state found");
+                    	if (err) console.log(err, err.stack);
+                    	else {
+                    		console.log("Failed Execution History:", historyData);
+                        	
+                        	// find the step that caused the failure
+                        	var failedStateName = findFailedState(err, historyData);	
+                        	if (failedStateName != null) {
+                        		var params = {
+                                    stateMachineArn: provisioningStateMachineArn
+                        		};
+                        		
+                        		stepfunctions.describeStateMachine(params, function(err, stateMachineDescData) {
+                        			if (err) console.log(err, err.stack); 
+                        			else if (stateMachineDescData == null) console.log("Did not get back state machine details for arn", provisioningStateMachineArn);
+                        			else { 
+                        				console.log("State Machine Description: ", stateMachineDescData);   
+                        				
+                        				// Set up a new state machine definition with "GoToState" branching execution directly to the failed state
+                        				var stateMachineDefinitionObj = JSON.parse(stateMachineDescData.definition);
+                        				stateMachineDefinitionObj = setupNewStateMachineDefinitionWithGoToState(stateMachineDefinitionObj, failedStateName);
+                        				console.log("NEW State Machine definition: ", stateMachineDefinitionObj); 
+                        				
+                        				// Create a name for the new state machine
+                        			    var newStateMachineName = stateMachineDescData.name + '-with-GoToState';
+                        			    
+                        			    // Create the new state machine
+                        			    var params = {
+                                            definition: JSON.stringify(stateMachineDefinitionObj), 
+                                            name: newStateMachineName,
+                                            roleArn: stateMachineDescData.roleArn
+                                        };
+                        			    stepfunctions.createStateMachine(params, function(err, data) {
+                        			        if (err) console.log(err, err.stack); // an error occurred
+                        			        else     console.log(data);           // successful response
+                        			    });
+                        			}
+                        		});
+                        	} else {
+                        		console.log ("couldn't find fail state for execution arn:", execution.executionArn);
+                        	}	
+                    	}
+                    	
                     });
-                   
                 }
             }     
         }
@@ -51,6 +88,34 @@ module.exports.retry = (event, context, callback) => {
 
 	callback(null, {} );
 };
+
+
+function setupNewStateMachineDefinitionWithGoToState(stateMachineDefinitionObj, failedStateName) {
+	// A lot more detail about what I'm doing here: https://aws.amazon.com/blogs/compute/resume-aws-step-functions-from-any-state/
+
+	var originalStartAt = stateMachineDefinitionObj.StartAt;
+	
+	// Create the GoToState with the variable $.resuming.
+    // If new state machine is executed with $.resuming = true, then the state machine skips to the failed state.
+    // Otherwise, it executes the state machine from the original start state.
+	var GoToState = {
+			'Type': "Choice", 
+			'Choices': [{
+				'Variable': "$.resuming", 
+				'Next': originalStartAt,
+				'BooleanEquals': "False", 
+			}], 
+			'Default': failedStateName
+	}
+	
+	// Add new GoToState to State List
+	stateMachineDefinitionObj.States['GoToState'] = GoToState;
+	
+	// Reset the start point to be the new GoToState
+	stateMachineDefinitionObj.StartAt = 'GoToState';
+	
+	return stateMachineDefinitionObj;
+}
 
 
 function findFailedState(err, data) {
@@ -70,7 +135,6 @@ function findFailedState(err, data) {
  			for (var i = 0; i < data.events.length; i++) {
  			    if (data.events[i].type === 'FailStateEntered') {
  			    	// get the next event in the list (they appear in reverse order) and return its state name
- 			    	//console.log(data.events[i+1].stateExitedEventDetails.name);
  			    	return data.events[i+1].stateExitedEventDetails.name;
  				}
  			}
