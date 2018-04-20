@@ -23,7 +23,6 @@ module.exports.retry = (event, context, callback) => {
     stepfunctions.listExecutions(params, function(err, executionData) {
         if (err) console.log(err, err.stack); 
         else {
-        	console.log("Failed Execution List:", executionData); 
         	// Loop through the failed executions
             if (executionData.executions.length > 0) {
         	    for (var i = 0; i < executionData.executions.length; i++) {
@@ -39,7 +38,7 @@ module.exports.retry = (event, context, callback) => {
                     stepfunctions.getExecutionHistory(params, function(err, historyData) {
                     	if (err) console.log(err, err.stack);
                     	else {
-                    		console.log("Failed Execution History:", historyData);
+                        	console.log("history data: ", JSON.stringify(historyData));
                         	
                         	// find the step that caused the failure
                         	var failedStateName = findFailedState(err, historyData);	
@@ -52,26 +51,35 @@ module.exports.retry = (event, context, callback) => {
                         			if (err) console.log(err, err.stack); 
                         			else if (stateMachineDescData == null) console.log("Did not get back state machine details for arn", provisioningStateMachineArn);
                         			else { 
-                        				console.log("State Machine Description: ", stateMachineDescData);   
-                        				
                         				// Set up a new state machine definition with "GoToState" branching execution directly to the failed state
                         				var stateMachineDefinitionObj = JSON.parse(stateMachineDescData.definition);
-                        				stateMachineDefinitionObj = setupNewStateMachineDefinitionWithGoToState(stateMachineDefinitionObj, failedStateName);
-                        				console.log("NEW State Machine definition: ", stateMachineDefinitionObj); 
+                        				stateMachineDefinitionObj = setupNewStateMachineDefinitionWithGoToState(stateMachineDefinitionObj, failedStateName); 
+                        				var stateMachineDefinitionStr = JSON.stringify(stateMachineDefinitionObj);
                         				
                         				// Create a name for the new state machine
                         			    var newStateMachineName = stateMachineDescData.name + '-with-GoToState';
                         			    
                         			    // Create the new state machine
                         			    var params = {
-                                            definition: JSON.stringify(stateMachineDefinitionObj), 
+                                            definition: stateMachineDefinitionStr, 
                                             name: newStateMachineName,
                                             roleArn: stateMachineDescData.roleArn
                                         };
-                        			    stepfunctions.createStateMachine(params, function(err, data) {
-                        			        if (err) console.log(err, err.stack); // an error occurred
-                        			        else     console.log(data);           // successful response
+                        			    stepfunctions.createStateMachine(params, function(err, newStateMachineData) {
+                        			        if (err) console.log(err, err.stack); 
+                        			        else {
+                        			        	// Get the first event in the history of the original execution (which is at the end of the array)
+                        			        	// This should be when the execution started. This will have the original inputs, which we can
+                        			        	// use to kick off the new state machine.
+                        			        	var firstEvent = historyData.events[historyData.events.length - 1];
+                        			        	if (firstEvent.type === "ExecutionStarted") {
+                        			        		var originalInput = JSON.parse(firstEvent.executionStartedEventDetails.input);
+                        			        		
+                        			        		startNewStateMachineExecution(newStateMachineData, originalInput);
+                        			        	}
+                        			        }
                         			    });
+                        				
                         			}
                         		});
                         	} else {
@@ -89,6 +97,28 @@ module.exports.retry = (event, context, callback) => {
 	callback(null, {} );
 };
 
+function startNewStateMachineExecution(newStateMachineData, originalInput) {
+	// Adjust the original input to include a new variable to force the new
+	// state machine to jump to the right state
+	originalInput["resuming"] = true;
+	
+	// Some of the manufactured failures for this state machine are because the input username
+	// contain the word 'fail' (to prove this works.) Replace it with 'pass' and retry.
+	originalInput["username"] = originalInput["username"].replace("fail", "pass");
+	originalInput = JSON.stringify(originalInput);
+	
+	// Create an execution of the new state machine
+	var params = {
+        input: originalInput, 
+        stateMachineArn: newStateMachineData.stateMachineArn
+    };
+	stepfunctions.startExecution(params, function(err, newExecutionData) {
+	    if (err) console.log(err, err.stack); 
+	    else console.log(newExecutionData);
+	});
+}
+
+
 
 function setupNewStateMachineDefinitionWithGoToState(stateMachineDefinitionObj, failedStateName) {
 	// A lot more detail about what I'm doing here: https://aws.amazon.com/blogs/compute/resume-aws-step-functions-from-any-state/
@@ -100,11 +130,13 @@ function setupNewStateMachineDefinitionWithGoToState(stateMachineDefinitionObj, 
     // Otherwise, it executes the state machine from the original start state.
 	var GoToState = {
 			'Type': "Choice", 
-			'Choices': [{
-				'Variable': "$.resuming", 
-				'Next': originalStartAt,
-				'BooleanEquals': "False", 
-			}], 
+			'Choices': [
+				{
+				    'Variable': "$.resuming", 
+				    'Next': originalStartAt,
+				    'BooleanEquals': false, 
+			    }
+			], 
 			'Default': failedStateName
 	}
 	
