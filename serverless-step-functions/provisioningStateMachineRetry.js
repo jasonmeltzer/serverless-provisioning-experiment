@@ -68,15 +68,28 @@ module.exports.retry = (event, context, callback) => {
                         			    stepfunctions.createStateMachine(params, function(err, newStateMachineData) {
                         			        if (err) console.log(err, err.stack); 
                         			        else {
+                        			        	// TODO: Walk backward through historyData and find the event where
+                        			        	// type=TaskStateEntered and step=failedStateName
+                        			        	// You should be able to get the original inputs to that step. Then modify it
+                        			        	// and kick off the new state machine.
+                        			        	
+                        			        	
+                        			        	
+                        			        	// THIS IS WRONG. We don't need the original input to the entire state machine. We need
+                        			        	// what was sent to the step that failed (the structure may change along the way.)
+                        			        	/*
                         			        	// Get the first event in the history of the original execution (which is at the end of the array)
                         			        	// This should be when the execution started. This will have the original inputs, which we can
                         			        	// use to kick off the new state machine.
                         			        	var firstEvent = historyData.events[historyData.events.length - 1];
                         			        	if (firstEvent.type === "ExecutionStarted") {
                         			        		var originalInput = JSON.parse(firstEvent.executionStartedEventDetails.input);
+                        			        		console.log("originalInput", originalInput);
                         			        		
                         			        		startNewStateMachineExecution(newStateMachineData, originalInput);
-                        			        	}
+                        			        	}*/
+                        			        	
+                        			        	
                         			        }
                         			    });
                         				
