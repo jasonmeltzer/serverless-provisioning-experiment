@@ -23,7 +23,7 @@ module.exports.retry = (event, context, callback) => {
     stepfunctions.listExecutions(params, function(err, executionData) {
         if (err) console.log(err, err.stack); 
         else {
-        	// Loop through the failed executions
+        	// Loop through the failed executions - TODO don't redo ones that were already reexecuted
             if (executionData.executions.length > 0) {
         	    for (var i = 0; i < executionData.executions.length; i++) {
         	    	var execution = executionData.executions[i];
@@ -37,11 +37,9 @@ module.exports.retry = (event, context, callback) => {
                     // get the history for this particular execution of the state machine
                     stepfunctions.getExecutionHistory(params, function(err, historyData) {
                     	if (err) console.log(err, err.stack);
-                    	else {
-                        	console.log("history data: ", JSON.stringify(historyData));
-                        	
+                    	else {                        	
                         	// find the step that caused the failure
-                        	var failedStateName = findFailedState(err, historyData);	
+                        	var failedStateName = findFailedState(historyData);	
                         	if (failedStateName != null) {
                         		var params = {
                                     stateMachineArn: provisioningStateMachineArn
@@ -49,11 +47,13 @@ module.exports.retry = (event, context, callback) => {
                         		
                         		stepfunctions.describeStateMachine(params, function(err, stateMachineDescData) {
                         			if (err) console.log(err, err.stack); 
-                        			else if (stateMachineDescData == null) console.log("Did not get back state machine details for arn", provisioningStateMachineArn);
+                        			else if (stateMachineDescData == null) 
+                        				console.log("Did not get back state machine details for arn", provisioningStateMachineArn);
                         			else { 
                         				// Set up a new state machine definition with "GoToState" branching execution directly to the failed state
                         				var stateMachineDefinitionObj = JSON.parse(stateMachineDescData.definition);
-                        				stateMachineDefinitionObj = setupNewStateMachineDefinitionWithGoToState(stateMachineDefinitionObj, failedStateName); 
+                        				stateMachineDefinitionObj = setupNewStateMachineDefinitionWithGoToState(
+                        						                        stateMachineDefinitionObj, failedStateName); 
                         				var stateMachineDefinitionStr = JSON.stringify(stateMachineDefinitionObj);
                         				
                         				// Create a name for the new state machine
@@ -72,7 +72,12 @@ module.exports.retry = (event, context, callback) => {
                         			        	// type=TaskStateEntered and step=failedStateName
                         			        	// You should be able to get the original inputs to that step. Then modify it
                         			        	// and kick off the new state machine.
-                        			        	
+                        			        	var originalInputObj = getOriginalInput(historyData, failedStateName);
+                        			        	if (originalInputObj == null) {
+                        			        		console.log("Couldn't find original input for failed state");
+                        			        	} else {
+                        			        		startNewStateMachineExecution(newStateMachineData, originalInputObj);
+                        			        	}
                         			        	
                         			        	
                         			        	// THIS IS WRONG. We don't need the original input to the entire state machine. We need
@@ -110,24 +115,28 @@ module.exports.retry = (event, context, callback) => {
 	callback(null, {} );
 };
 
-function startNewStateMachineExecution(newStateMachineData, originalInput) {
+function startNewStateMachineExecution(newStateMachineData, originalInputObj) {
 	// Adjust the original input to include a new variable to force the new
 	// state machine to jump to the right state
-	originalInput["resuming"] = true;
+	originalInputObj["resuming"] = true;
 	
 	// Some of the manufactured failures for this state machine are because the input username
 	// contain the word 'fail' (to prove this works.) Replace it with 'pass' and retry.
-	originalInput["username"] = originalInput["username"].replace("fail", "pass");
-	originalInput = JSON.stringify(originalInput);
+	// (The structure of the original input contains a clause called "input".)
+	var inputObj = JSON.parse(originalInputObj["input"]);
+	inputObj["username"] = inputObj["username"].replace("fail", "pass");
+	originalInputObj["input"] = JSON.stringify(inputObj);
+	
+	var newInput = JSON.stringify(originalInputObj);
 	
 	// Create an execution of the new state machine
 	var params = {
-        input: originalInput, 
+        input: newInput, 
         stateMachineArn: newStateMachineData.stateMachineArn
     };
 	stepfunctions.startExecution(params, function(err, newExecutionData) {
 	    if (err) console.log(err, err.stack); 
-	    else console.log(newExecutionData);
+	    else console.log("Successfully executed new state machine", newExecutionData);
 	});
 }
 
@@ -163,28 +172,38 @@ function setupNewStateMachineDefinitionWithGoToState(stateMachineDefinitionObj, 
 }
 
 
-function findFailedState(err, data) {
-	if (err) {
-     	console.log(err, err.stack); 
-     	return null;
- 	}
- 	else { 
- 		console.log(data);          
- 		    
- 		// Doublecheck that the execution actually failed
- 		if (data.events.length < 1 || data.events[0].type !== 'ExecutionFailed') {
- 			console.log('Execution did not end with an ExecutionFailed event', executionArn);
- 		} else {
- 			// Walk back to the state BEFORE the one of type 'FailStateEntered' 
- 			// (the one that actually caused the failure before transitioning to failure)
- 			for (var i = 0; i < data.events.length; i++) {
- 			    if (data.events[i].type === 'FailStateEntered') {
- 			    	// get the next event in the list (they appear in reverse order) and return its state name
- 			    	return data.events[i+1].stateExitedEventDetails.name;
- 				}
+function findFailedState(historyData) {
+ 
+ 	// Doublecheck that the execution actually failed
+ 	if (historyData.events.length < 1 || historyData.events[0].type !== 'ExecutionFailed') {
+ 		console.log('Execution did not end with an ExecutionFailed event', executionArn);
+ 	} else {
+ 		// Walk back to the state BEFORE the one of type 'FailStateEntered' 
+ 		// (the one that actually caused the failure before transitioning to failure)
+ 		for (var i = 0; i < historyData.events.length; i++) {
+ 		    if (historyData.events[i].type === 'FailStateEntered') {
+ 		    	// get the next event in the list (they appear in reverse order) and return its state name
+ 		    	return historyData.events[i+1].stateExitedEventDetails.name;
  			}
- 				
  		}
- 		return null;
+ 			
  	}
+ 	return null;
+}
+
+/* Get the original input to a given failed state name within a particular execution history */
+function getOriginalInput(historyData, failedStateName) {
+	// Walk backward through historyData and find the event where
+	// type=TaskStateEntered and step=failedStateName
+	if (historyData != null && historyData.events.length > 0) {
+		for (var i = 0; i < historyData.events.length; i++) {
+			if (historyData.events[i].stateEnteredEventDetails != null &&
+			    historyData.events[i].stateEnteredEventDetails.name	=== failedStateName && 
+			    historyData.events[i].type === 'TaskStateEntered') {
+ 		    	return JSON.parse(historyData.events[i].stateEnteredEventDetails.input);
+ 			}
+		}
+	}
+		
+	return null;
 }
