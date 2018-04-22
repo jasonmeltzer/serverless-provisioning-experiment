@@ -2,7 +2,8 @@
 
 var AWS = require('aws-sdk'),
     documentClient = new AWS.DynamoDB.DocumentClient();
-const stepfunctions = new AWS.StepFunctions({apiVersion: '2016-11-23'});
+const stepfunctions = new AWS.StepFunctions(/*{apiVersion: '2016-11-23'}*/);
+var moment = require('moment');
 
 module.exports.retry = (event, context, callback) => {
 	
@@ -23,10 +24,19 @@ module.exports.retry = (event, context, callback) => {
     stepfunctions.listExecutions(params, function(err, executionData) {
         if (err) console.log(err, err.stack); 
         else {
-        	// Loop through the failed executions - TODO don't redo ones that were already reexecuted
+        	// Loop through the failed executions 
+        	// We are only interested in the ones that failed in the last 30 minutes for the purposes of this demonstration
+        	// In a real-world scenario it would make more sense to keep track of which executions have been retried and store that 
+        	// information somewhere so we don't accidentally redo one more than once, but that's unnecessary to demonstrate the idea here.
             if (executionData.executions.length > 0) {
         	    for (var i = 0; i < executionData.executions.length; i++) {
         	    	var execution = executionData.executions[i];
+        	    	
+        	    	// Check that the current execution occurred in the last 30 minutes, otherwise skip it
+        	    	var currentTime = moment();
+        	    	var executionTime = moment(execution.stopDate);
+        	    	if (currentTime.diff(executionTime, 'm') > 30)
+        	    		continue;
        
                     var params = {
                     	executionArn: execution.executionArn, 
@@ -79,22 +89,6 @@ module.exports.retry = (event, context, callback) => {
                         			        		startNewStateMachineExecution(newStateMachineData, originalInputObj);
                         			        	}
                         			        	
-                        			        	
-                        			        	// THIS IS WRONG. We don't need the original input to the entire state machine. We need
-                        			        	// what was sent to the step that failed (the structure may change along the way.)
-                        			        	/*
-                        			        	// Get the first event in the history of the original execution (which is at the end of the array)
-                        			        	// This should be when the execution started. This will have the original inputs, which we can
-                        			        	// use to kick off the new state machine.
-                        			        	var firstEvent = historyData.events[historyData.events.length - 1];
-                        			        	if (firstEvent.type === "ExecutionStarted") {
-                        			        		var originalInput = JSON.parse(firstEvent.executionStartedEventDetails.input);
-                        			        		console.log("originalInput", originalInput);
-                        			        		
-                        			        		startNewStateMachineExecution(newStateMachineData, originalInput);
-                        			        	}*/
-                        			        	
-                        			        	
                         			        }
                         			    });
                         				
@@ -135,8 +129,12 @@ function startNewStateMachineExecution(newStateMachineData, originalInputObj) {
         stateMachineArn: newStateMachineData.stateMachineArn
     };
 	stepfunctions.startExecution(params, function(err, newExecutionData) {
-	    if (err) console.log(err, err.stack); 
-	    else console.log("Successfully executed new state machine", newExecutionData);
+	    if (err) {
+	    	console.log(err, err.stack); 
+	    }
+	    else {
+	    	console.log("Successfully executed new state machine", newExecutionData);
+	    }
 	});
 }
 

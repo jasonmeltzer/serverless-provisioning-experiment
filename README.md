@@ -16,11 +16,19 @@ Then create an IAM user for the Serverless framework (https://serverless.com/fra
 serverless config credentials --provider aws --key <KEY_ID> --secret <SECRET>
 ```
 
-Some of these projects require serverless plugins. Run these commands in the serverless-step-functions and serverless-step-functions-java directories:
+Some of these projects require serverless plugins and other npm modules. Run these commands in the serverless-step-functions directory:
+```
+serverless plugin install --name serverless-step-functions
+serverless plugin install --name serverless-pseudo-parameters
+npm install moment
+```
+
+Run these commands in the serverless-step-functions-java directory:
 ```
 serverless plugin install --name serverless-step-functions
 serverless plugin install --name serverless-pseudo-parameters
 ```
+
 
 Create a config file for each deployment stage (dev, test, etc.) in config/ using file format config-dev.yml, config-test.yml, etc. A sample file is included under config/config-{stage}.yml
 

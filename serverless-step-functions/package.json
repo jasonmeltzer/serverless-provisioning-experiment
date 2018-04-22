@@ -2,7 +2,9 @@
   "name": "provisioning-steps",
   "description": "",
   "version": "0.1.0",
-  "dependencies": {},
+  "dependencies": {
+    "moment": "^2.22.1"
+  },
   "devDependencies": {
     "serverless": "^1.26.1",
     "serverless-plugin-aws-alerts": "^1.2.4",
