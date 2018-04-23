@@ -14,6 +14,11 @@ module.exports.retry = (event, context, callback) => {
 
 	// The provisioning state machine, defined in the resources/Outputs section of serverless.yml
     var provisioningStateMachineArn = process.env.provisioningstatemachine_arn; 
+    
+    // An empty state machine, defined in serverless.yml, which will be filled in. We could create a new one,
+    // but filling in the details of an existing one is easier because CloudFormation can clean it up when we 
+    // tear things down.
+    var retryStateMachineArn = process.env.retrystatemachine_arn; 
 
     var params = {
         stateMachineArn: provisioningStateMachineArn,
@@ -65,17 +70,17 @@ module.exports.retry = (event, context, callback) => {
                         				stateMachineDefinitionObj = setupNewStateMachineDefinitionWithGoToState(
                         						                        stateMachineDefinitionObj, failedStateName); 
                         				var stateMachineDefinitionStr = JSON.stringify(stateMachineDefinitionObj);
-                        				
-                        				// Create a name for the new state machine
-                        			    var newStateMachineName = stateMachineDescData.name + '-with-GoToState';
                         			    
-                        			    // Create the new state machine
+                        			    // Update the retry state machine, which is originally deployed with an empty definition but may
+                        				// have been changed in past executions of this lambda. This isn't a great design -- multiple invocations
+                        				// of this lambda might compete to modify this state machine's definition. This will work for demo purposes.
                         			    var params = {
+                        			        stateMachineArn: retryStateMachineArn,
                                             definition: stateMachineDefinitionStr, 
-                                            name: newStateMachineName,
                                             roleArn: stateMachineDescData.roleArn
                                         };
-                        			    stepfunctions.createStateMachine(params, function(err, newStateMachineData) {
+                        			    console.log(params);
+                        			    stepfunctions.updateStateMachine(params, function(err, newStateMachineData) {
                         			        if (err) console.log(err, err.stack); 
                         			        else {
                         			        	// TODO: Walk backward through historyData and find the event where
@@ -86,7 +91,7 @@ module.exports.retry = (event, context, callback) => {
                         			        	if (originalInputObj == null) {
                         			        		console.log("Couldn't find original input for failed state");
                         			        	} else {
-                        			        		startNewStateMachineExecution(newStateMachineData, originalInputObj);
+                        			        		startNewStateMachineExecution(originalInputObj, retryStateMachineArn);
                         			        	}
                         			        	
                         			        }
@@ -109,7 +114,7 @@ module.exports.retry = (event, context, callback) => {
 	callback(null, {} );
 };
 
-function startNewStateMachineExecution(newStateMachineData, originalInputObj) {
+function startNewStateMachineExecution(originalInputObj, stateMachineArn) {
 	// Adjust the original input to include a new variable to force the new
 	// state machine to jump to the right state
 	originalInputObj["resuming"] = true;
@@ -126,7 +131,7 @@ function startNewStateMachineExecution(newStateMachineData, originalInputObj) {
 	// Create an execution of the new state machine
 	var params = {
         input: newInput, 
-        stateMachineArn: newStateMachineData.stateMachineArn
+        stateMachineArn: stateMachineArn
     };
 	stepfunctions.startExecution(params, function(err, newExecutionData) {
 	    if (err) {

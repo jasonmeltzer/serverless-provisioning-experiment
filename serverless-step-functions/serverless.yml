@@ -16,7 +16,7 @@ provider:
         - states:GetExecutionHistory
         - states:ListExecutions
         - states:DescribeStateMachine
-        - states:CreateStateMachine
+        - states:UpdateStateMachine
       Resource: "*"
     - Effect: Allow     # give lambas the iam:PassRole because it's necessary for a lambda to be able to create a new state machine thru the SDK
       Action:
@@ -51,6 +51,11 @@ resources:
       Description: The ARN of the state machine
       Value:
         Ref: ProvisioningStateMachine   #Even though the name of the step function is camel case we have to capitalize, not sure why.
+    RetryStateMachineProxy:
+      Description: The ARN of the state machine to be used for retries
+      Value:
+        Ref: RetryStateMachine
+        
   Resources:
     ProvisioningStateMachineExecutionsFailedSnsTopic: # Create a SNS topic to publish to when the ProvisioningStateMachine has an execution failure
       Type: AWS::SNS::Topic
@@ -74,7 +79,7 @@ resources:
         Period: 300
         EvaluationPeriods: 1
         AlarmActions:
-          - Ref: ProvisioningStateMachineExecutionsFailedSnsTopic 
+          - Ref: ProvisioningStateMachineExecutionsFailedSnsTopic
 
 functions:
   dynamoChangeHandler:
@@ -111,6 +116,7 @@ functions:
     environment:
       # this gives the lambda a handle to execute the provisioning state machine (step functions)
       provisioningstatemachine_arn: ${self:resources.Outputs.ProvisioningStateMachineProxy.Value}
+      retrystatemachine_arn: ${self:resources.Outputs.RetryStateMachineProxy.Value} 
     events:
       - sns:   # https://serverless.com/framework/docs/providers/aws/events/sns/
           arn: # I make no apologies for the syntax that follows. I've made peace with it.
@@ -122,7 +128,8 @@ functions:
                 - Ref: "AWS::AccountId"
                 - ":${self:custom.provisioningStateMachineExecutionsFailedSnsTopicName}"
           topicName: ${self:custom.provisioningStateMachineExecutionsFailedSnsTopicName}
-            
+    
+  
 stepFunctions:
   stateMachines:
     provisioningStateMachine:
@@ -193,7 +200,19 @@ stepFunctions:
             Type: Task
             Resource: "arn:aws:lambda:#{AWS::Region}:#{AWS::AccountId}:function:${self:service}-${self:provider.stage}-completeProvisioning"               
               
-     
+    # Set up a (basically) empty state machine, which will be used in the lambda function provisioningStateMachineRetry, to retry
+    # the provisioningStateMachine step functions, but with modifications.
+    # The advantage of doing it this way is that the state machine can be cleaned up through CloudFormation.
+    retryStateMachine:
+       name: retryStateMachine
+       definition:
+        Comment: "An empty state machine to be filled in for retries"
+        StartAt: Wait1
+        States:
+          Wait1:
+            Type: Wait
+            Seconds: 5
+            End: true
             
 plugins:
   - serverless-step-functions
