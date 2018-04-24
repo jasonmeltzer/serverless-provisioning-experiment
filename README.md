@@ -32,6 +32,8 @@ serverless plugin install --name serverless-pseudo-parameters
 
 Create a config file for each deployment stage (dev, test, etc.) in config/ using file format config-dev.yml, config-test.yml, etc. A sample file is included under config/config-{stage}.yml
 
+If you want to use the feature that will confirm deletions via email, go to https://console.aws.amazon.com/ses/home and verify the email address you put in your config file under "sesFromAddress". This will send you an email with a link that you have to click to verify you own the address the emails will be coming from. (Make sure to do this in the region(s) you'll be sending emails from, which should be the regions(s) you deploy 'serverless-step-functions-java' to!)
+
 
 
 # The recommended order to deploy these projects:

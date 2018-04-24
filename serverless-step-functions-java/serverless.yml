@@ -30,11 +30,13 @@ provider:
         - states:ListActivities
         - states:SendTaskSuccess
         - states:SendTaskFailure
+        - ses:SendEmail
       Resource: "*"
       
 custom:
   deleteConfirmationActivityName: "${self:service}-${self:provider.stage}-deleteConfirmationActivity"
   deleteConfirmationActivityArn: "arn:aws:states:#{AWS::Region}:#{AWS::AccountId}:activity:${self:custom.deleteConfirmationActivityName}"
+  sesFromAddress: ${file(../config/config-${self:provider.stage}.yml):sesFromAddress}
 
 package:
   artifact: target/provisioning-steps-java.jar
@@ -56,11 +58,13 @@ functions:
     environment:
       # this gives the lambda a handle to the activity arn that it needs to get tasks
       delete_confirmation_activity_arn: ${self:custom.deleteConfirmationActivityArn} 
+      sesFromAddress: ${self:custom.sesFromAddress}
+      region: "#{AWS::Region}"
     timeout: 60
     events:
       - schedule: 
           rate: rate(2 minutes) 
-          enabled: true
+          enabled: false
           
 stepFunctions:
   stateMachines:
@@ -81,6 +85,8 @@ stepFunctions:
             Catch:
             - ErrorEquals:
               - com.example.DeleteNotConfirmedException
+              ResultPath: $.error-info # Adding this will allow the original input to this step to fall through and error info
+                                       # to get populated into a new field, rather than overwriting all of the input.
               Next: DeleteConfirmationActivity
           DeletionHandler:
             Type: Task
@@ -94,9 +100,11 @@ stepFunctions:
             Catch:
             - ErrorEquals:
               - States.Timeout
+              ResultPath: $.error-info
               Next: DeleteResponseNotReceived
             - ErrorEquals:
               - TaskFAIL
+              ResultPath: $.error-info
               Next: DeleteRejected
           DeleteResponseNotReceived:
             Type: Pass 

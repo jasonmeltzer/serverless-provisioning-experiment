@@ -37,7 +37,6 @@ provider:
 custom:  
   
   alarmNotificationEmail: ${file(../config/config-${self:provider.stage}.yml):alarmNotificationEmail}
-  sesFromAddress: ${file(../config/config-${self:provider.stage}.yml):sesFromAddress}
   
   # set up a topic name to be used in SNS for failures events on the Provisioning State Machine
   provisioningStateMachineExecutionsFailedSnsTopicName: provisioning-state-machine-executions-failed-${self:provider.stage}

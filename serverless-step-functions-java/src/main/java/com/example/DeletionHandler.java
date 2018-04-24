@@ -37,10 +37,6 @@ public class DeletionHandler implements RequestHandler<Map<String, Object>, ApiG
 	public ApiGatewayResponse handleRequest(Map<String, Object> input, Context context) {
 		LOG.info("received: " + input);
 		
-		for (String key : input.keySet()) {
-			LOG.info("key: " + key + ", value: " + input.get(key));
-		}
-		
 		Response responseBody = null;
 		String id = null;
 		try {
