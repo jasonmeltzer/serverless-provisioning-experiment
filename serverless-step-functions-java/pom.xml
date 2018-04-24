@@ -45,6 +45,11 @@
       <version>1.11.311</version>
     </dependency>   
     <dependency>
+      <groupId>com.amazonaws</groupId>
+      <artifactId>aws-java-sdk-stepfunctions</artifactId>
+      <version>1.11.315</version>
+    </dependency>
+    <dependency>
       <groupId>org.json</groupId>
       <artifactId>json</artifactId>
       <version>20180130</version>

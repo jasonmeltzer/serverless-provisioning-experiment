@@ -23,7 +23,13 @@ provider:
       Resource:
         #reference the output variable mailboxDynamoDbTableArn defined in serverless-provisioning-dbonly project (in the appropriate stage)
         ${cf:serverless-provisioning-dbonly-${self:provider.stage}.mailboxesDynamoDbTableArn} 
-  
+    - Effect: Allow
+      Action:
+        #- states:CreateActivity 
+        - states:GetActivityTask 
+        - states:ListActivities
+      Resource: "*"
+
 package:
   artifact: target/provisioning-steps-java.jar
 
@@ -40,6 +46,11 @@ functions:
     handler: com.example.CheckConfirmDeletion::handleRequest
   deletionHandler:
     handler: com.example.DeletionHandler
+  waitForDeleteConfirmation:
+    handler: com.example.WaitForDeleteConfirmation
+#    timeout: 15
+    events:
+      - schedule: rate(5 minutes) # For now...
           
 stepFunctions:
   stateMachines:
@@ -60,15 +71,21 @@ stepFunctions:
             Catch:
             - ErrorEquals:
               - com.example.DeleteNotConfirmedException
-              Next: DeleteNotConfirmed
+              Next: WaitForDeleteConfirmation
           DeletionHandler:
             Type: Task
             Resource: "arn:aws:lambda:#{AWS::Region}:#{AWS::AccountId}:function:${self:service}-${self:provider.stage}-deletionHandler"
             End: true
+          WaitForDeleteConfirmation:
+            Type: Task
+            Resource: "arn:aws:states:#{AWS::Region}:#{AWS::AccountId}:activity:${self:service}-${self:provider.stage}-waitForDeleteConfirmationActivity"
+            TimeoutSeconds: 60 # This represents how long the task will stay alive *once it's picked up by a worker*
+            Next: DeleteNotConfirmed # TODO Figure out how to make this transition back to DeletionHandler on a task success
           DeleteNotConfirmed:
             Type: Pass 
             End: true
-       
+  activities:
+    - ${self:service}-${self:provider.stage}-waitForDeleteConfirmationActivity       
          
 plugins:
   - serverless-step-functions
