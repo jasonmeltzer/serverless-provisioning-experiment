@@ -28,7 +28,13 @@ provider:
         #- states:CreateActivity 
         - states:GetActivityTask 
         - states:ListActivities
+        - states:SendTaskSuccess
+        - states:SendTaskFailure
       Resource: "*"
+      
+custom:
+  deleteConfirmationActivityName: "${self:service}-${self:provider.stage}-deleteConfirmationActivity"
+  deleteConfirmationActivityArn: "arn:aws:states:#{AWS::Region}:#{AWS::AccountId}:activity:${self:custom.deleteConfirmationActivityName}"
 
 package:
   artifact: target/provisioning-steps-java.jar
@@ -38,8 +44,7 @@ resources:
     DeletionStateMachineProxy: #output this variable so that a lambda function in another project can reference it and kick off the deletion steps
       Description: The ARN of the deletion state machine 
       Value:
-        Ref: DeletionStateMachine #this must be capitalized even though the name below is camel case
-        
+        Ref: DeletionStateMachine #this must be capitalized even though the name below is camel case 
 
 functions:
   checkConfirmDeletion:
@@ -48,9 +53,14 @@ functions:
     handler: com.example.DeletionHandler
   waitForDeleteConfirmation:
     handler: com.example.WaitForDeleteConfirmation
-#    timeout: 15
+    environment:
+      # this gives the lambda a handle to the activity arn that it needs to get tasks
+      delete_confirmation_activity_arn: ${self:custom.deleteConfirmationActivityArn} 
+    timeout: 60
     events:
-      - schedule: rate(5 minutes) # For now...
+      - schedule: 
+          rate: rate(2 minutes) 
+          enabled: true
           
 stepFunctions:
   stateMachines:
@@ -71,21 +81,31 @@ stepFunctions:
             Catch:
             - ErrorEquals:
               - com.example.DeleteNotConfirmedException
-              Next: WaitForDeleteConfirmation
+              Next: DeleteConfirmationActivity
           DeletionHandler:
             Type: Task
             Resource: "arn:aws:lambda:#{AWS::Region}:#{AWS::AccountId}:function:${self:service}-${self:provider.stage}-deletionHandler"
             End: true
-          WaitForDeleteConfirmation:
+          DeleteConfirmationActivity:
             Type: Task
-            Resource: "arn:aws:states:#{AWS::Region}:#{AWS::AccountId}:activity:${self:service}-${self:provider.stage}-waitForDeleteConfirmationActivity"
-            TimeoutSeconds: 60 # This represents how long the task will stay alive *once it's picked up by a worker*
-            Next: DeleteNotConfirmed # TODO Figure out how to make this transition back to DeletionHandler on a task success
-          DeleteNotConfirmed:
+            Resource: "${self:custom.deleteConfirmationActivityArn}"
+            TimeoutSeconds: 150 # This represents how long the task will stay alive *once it's picked up by a worker*
+            Next: DeletionHandler 
+            Catch:
+            - ErrorEquals:
+              - States.Timeout
+              Next: DeleteResponseNotReceived
+            - ErrorEquals:
+              - TaskFAIL
+              Next: DeleteRejected
+          DeleteResponseNotReceived:
+            Type: Pass 
+            End: true
+          DeleteRejected:
             Type: Pass 
             End: true
   activities:
-    - ${self:service}-${self:provider.stage}-waitForDeleteConfirmationActivity       
+    - ${self:custom.deleteConfirmationActivityName}    
          
 plugins:
   - serverless-step-functions
