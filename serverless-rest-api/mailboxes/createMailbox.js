@@ -2,7 +2,6 @@
 
 const uuid = require('uuid');
 const AWS = require('aws-sdk'); // eslint-disable-line import/no-extraneous-dependencies
-const crypto = require('crypto');
 const dynamoDb = new AWS.DynamoDB.DocumentClient();
 
 module.exports.create = (event, context, callback) => {
@@ -40,13 +39,10 @@ module.exports.create = (event, context, callback) => {
     },
   };
   
-  // if the user asked for a 'deleteConfirmRequired', add that to the Item values
-  if (data != null && data.deleteConfirmRequired != null && data.deleteConfirmRequired !== "undefined" &&
-      typeof data.deleteConfirmRequired === 'string') {
-	  if (data.deleteConfirmRequired === 'true' || data.deleteConfirmRequired === 'yes') {
-		  var confirmHash = crypto.randomBytes(20).toString('hex');
-		  params.Item["deleteConfirmRequired"] = confirmHash;
-	  }
+  // if the user asked for a 'deleteConfirmEmailContact', add that to the Item values
+  if (data != null && data.deleteConfirmEmailContact != null && data.deleteConfirmEmailContact !== "undefined" &&
+      typeof data.deleteConfirmEmailContact === 'string') {
+	  params.Item["deleteConfirmEmailContact"] = data.deleteConfirmEmailContact;
   }
 
   // write the mailbox to the database

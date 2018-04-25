@@ -110,8 +110,8 @@ function handleDelete(event, stateMachineArn) {
 	if (event.Records[0].dynamodb.NewImage.username) {
 		inputArr['username'] = event.Records[0].dynamodb.NewImage.username.S;
 	}
-	if (event.Records[0].dynamodb.NewImage.deleteConfirmRequired) {
-		inputArr['deleteConfirmRequired'] = event.Records[0].dynamodb.NewImage.deleteConfirmRequired.S;
+	if (event.Records[0].dynamodb.NewImage.deleteConfirmEmailContact) {
+		inputArr['deleteConfirmEmailContact'] = event.Records[0].dynamodb.NewImage.deleteConfirmEmailContact.S;
 	}
 	
 	var params = {

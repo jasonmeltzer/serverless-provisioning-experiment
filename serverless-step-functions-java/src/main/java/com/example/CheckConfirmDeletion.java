@@ -46,7 +46,7 @@ public class CheckConfirmDeletion /*implements RequestHandler<Map<String, Object
 			id = (String)input.get("id");
 			domain = (String)input.get("domain");
 			username = (String)input.get("username");
-			if (input.get("deleteConfirmRequired") != null && !((String)input.get("deleteConfirmRequired")).isEmpty()) {
+			if (input.get("deleteConfirmEmailContact") != null && !((String)input.get("deleteConfirmEmailContact")).isEmpty()) {
 				LOG.info("Deletion of mailbox " + id + " is still pending confirmation. Will not delete.");
 
 				throw new DeleteNotConfirmedException("Deletion of mailbox " + id + " is still pending confirmation. Will not delete.");
