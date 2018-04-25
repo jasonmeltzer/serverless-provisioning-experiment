@@ -24,9 +24,9 @@ import com.serverless.Response;
 import org.json.*;
 
 
-public class WaitForDeleteConfirmation implements RequestHandler<Map<String, Object>, ApiGatewayResponse> {
+public class SendDeleteConfirmationEmail implements RequestHandler<Map<String, Object>, ApiGatewayResponse> {
 
-	private static final Logger LOG = Logger.getLogger(WaitForDeleteConfirmation.class);
+	private static final Logger LOG = Logger.getLogger(SendDeleteConfirmationEmail.class);
 	
 	static final String FROM = System.getenv("sesFromAddress");
 	static final String SUBJECT = "Mailbox Deletion Confirmation";
@@ -67,7 +67,8 @@ public class WaitForDeleteConfirmation implements RequestHandler<Map<String, Obj
 					taskResult.getTaskToken(), 
 					jsonObj.getString("id"), 
 					jsonObj.getString("domain"), 
-					jsonObj.getString("username"));
+					jsonObj.getString("username"),
+					jsonObj.getString("deleteConfirmEmailContact"));
 
 			
 			// Randomly decide whether to send back a success or failure, for now. These will later become part of
@@ -102,7 +103,7 @@ public class WaitForDeleteConfirmation implements RequestHandler<Map<String, Obj
 				.build();
 	}
 	
-	private void sendDeleteConfirmationEmail(String taskToken, String mailboxId, String domain, String username) {
+	private void sendDeleteConfirmationEmail(String taskToken, String mailboxId, String domain, String username, String deleteConfirmEmailContact) {
 		if (taskToken == null || mailboxId == null || domain == null || username == null) {
 			LOG.error("Didn't receive the necessary information to send a confirmation email. Exiting...");
 			return;
@@ -123,7 +124,7 @@ public class WaitForDeleteConfirmation implements RequestHandler<Map<String, Obj
 		            .withRegion(System.getenv("region")).build(); // Use the same region this lambda is running in
 		    SendEmailRequest request = new SendEmailRequest()
 		          .withDestination(
-		              new Destination().withToAddresses(""))  // TODO REPLACE TO WITH THE RIGHT ADDRESS
+		              new Destination().withToAddresses(deleteConfirmEmailContact))  // Send the email to the 'deleteConfirmEmailContact' from the DB
 		          .withMessage(new Message()
 		              .withBody(new Body()
 		                  .withHtml(new Content()

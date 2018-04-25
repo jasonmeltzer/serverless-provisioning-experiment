@@ -53,8 +53,8 @@ functions:
     handler: com.example.CheckConfirmDeletion::handleRequest
   deletionHandler:
     handler: com.example.DeletionHandler
-  waitForDeleteConfirmation:
-    handler: com.example.WaitForDeleteConfirmation
+  sendDeleteConfirmationEmail:
+    handler: com.example.SendDeleteConfirmationEmail
     environment:
       # this gives the lambda a handle to the activity arn that it needs to get tasks
       delete_confirmation_activity_arn: ${self:custom.deleteConfirmationActivityArn} 
