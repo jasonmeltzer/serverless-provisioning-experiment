@@ -10,6 +10,7 @@ provider:
   environment:
     #reference the output variable mailboxDynamoDbTableName defined in serverless-provisioning-dbonly project (in the appropriate stage)
     DYNAMODB_TABLE_MBOX: ${cf:serverless-provisioning-dbonly-${self:provider.stage}.mailboxesDynamoDbTableName} 
+    API_GATEWAY_URL: { "Fn::Join" : ["", [" https://", { "Ref" : "ApiGatewayRestApi" }, ".execute-api.#{AWS::Region}.amazonaws.com/${self:provider.stage}/" ] ]  }
   iamRoleStatements:
     - Effect: Allow
       Action:
@@ -53,6 +54,18 @@ functions:
     handler: com.example.CheckConfirmDeletion::handleRequest
   deletionHandler:
     handler: com.example.DeletionHandler
+  approveDeletion:
+    handler: com.example.ApproveDeletion
+    events:
+      - http:
+          path: approve/{taskToken}
+          method: get
+#  denyDeletion:
+#    handler: com.example.DenyDeletion
+#    events:
+#      - http:
+#          path: deny/{taskToken}
+#          method: get
   sendDeleteConfirmationEmail:
     handler: com.example.SendDeleteConfirmationEmail
     environment:
@@ -96,6 +109,7 @@ stepFunctions:
             Type: Task
             Resource: "${self:custom.deleteConfirmationActivityArn}"
             TimeoutSeconds: 150 # This represents how long the task will stay alive *once it's picked up by a worker*
+            OutputPath: $ # Leave everything in the output that was in the input - will need it to actually delete the item from Dynamo
             Next: DeletionHandler 
             Catch:
             - ErrorEquals:

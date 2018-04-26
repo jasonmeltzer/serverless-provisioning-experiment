@@ -23,6 +23,8 @@ import com.serverless.Response;
 
 import org.json.*;
 
+import java.net.URLEncoder;
+
 
 public class SendDeleteConfirmationEmail implements RequestHandler<Map<String, Object>, ApiGatewayResponse> {
 
@@ -75,15 +77,15 @@ public class SendDeleteConfirmationEmail implements RequestHandler<Map<String, O
 			// REST endpoints that send a success or failure based on a link click in an email.
 			if ((new java.util.Random()).nextBoolean()) 
 			{
-				LOG.info("Sending task success");
+				/*LOG.info("Sending task success");
 				SendTaskSuccessRequest taskSuccessRequest = new SendTaskSuccessRequest().withTaskToken(taskResult.getTaskToken()).withOutput("{}");
-				stepFunctionsClient.sendTaskSuccess(taskSuccessRequest);
+				stepFunctionsClient.sendTaskSuccess(taskSuccessRequest);*/
 			} 
 			else 
 			{
-				LOG.info("Sending task failure");
+				/*LOG.info("Sending task failure");
 				SendTaskFailureRequest taskFailureRequest = new SendTaskFailureRequest().withTaskToken(taskResult.getTaskToken()).withError("TaskFAIL");
-				stepFunctionsClient.sendTaskFailure(taskFailureRequest);
+				stepFunctionsClient.sendTaskFailure(taskFailureRequest);*/
 			}
 			
 		}
@@ -112,8 +114,8 @@ public class SendDeleteConfirmationEmail implements RequestHandler<Map<String, O
 		try {
 			String htmlBody = HTMLBODY.
 								replace(MAILBOXPLACEHOLDER, username + "@" + domain).
-								replace(APPROVALPLACEHOLDER, "http://someurl?" + taskToken).
-								replace(REJECTIONPLACEHOLDER, "http://someotherurl?" + taskToken);
+								replace(APPROVALPLACEHOLDER, System.getenv("API_GATEWAY_URL") + "approve/" + URLEncoder.encode(taskToken, "UTF-8")).
+								replace(REJECTIONPLACEHOLDER, System.getenv("API_GATEWAY_URL") + "deny/" + URLEncoder.encode(taskToken, "UTF-8"));
 			String textBody = TEXTBODY.
 					replace(MAILBOXPLACEHOLDER, username + "@" + domain).
 					replace(APPROVALPLACEHOLDER, "http://someurl?" + taskToken).
