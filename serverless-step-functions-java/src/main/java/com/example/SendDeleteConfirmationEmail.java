@@ -71,29 +71,11 @@ public class SendDeleteConfirmationEmail implements RequestHandler<Map<String, O
 					jsonObj.getString("domain"), 
 					jsonObj.getString("username"),
 					jsonObj.getString("deleteConfirmEmailContact"));
-
-			
-			// Randomly decide whether to send back a success or failure, for now. These will later become part of
-			// REST endpoints that send a success or failure based on a link click in an email.
-			if ((new java.util.Random()).nextBoolean()) 
-			{
-				/*LOG.info("Sending task success");
-				SendTaskSuccessRequest taskSuccessRequest = new SendTaskSuccessRequest().withTaskToken(taskResult.getTaskToken()).withOutput("{}");
-				stepFunctionsClient.sendTaskSuccess(taskSuccessRequest);*/
-			} 
-			else 
-			{
-				/*LOG.info("Sending task failure");
-				SendTaskFailureRequest taskFailureRequest = new SendTaskFailureRequest().withTaskToken(taskResult.getTaskToken()).withError("TaskFAIL");
-				stepFunctionsClient.sendTaskFailure(taskFailureRequest);*/
-			}
-			
 		}
 		catch (com.amazonaws.SdkClientException e) // read timeout is expected if there aren't any events pending
 		{
 			LOG.info("No tasks available");
 		}
-		
 		
 		Map<String, String> headers = new HashMap<>();
 		headers.put("X-Powered-By", "AWS Lambda & Serverless");

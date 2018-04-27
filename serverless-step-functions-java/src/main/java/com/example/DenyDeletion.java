@@ -20,9 +20,9 @@ import com.serverless.Response;
 import java.net.URLDecoder;
 
 
-public class ApproveDeletion implements RequestHandler<Map<String, Object>, ApiGatewayResponse> {
+public class DenyDeletion implements RequestHandler<Map<String, Object>, ApiGatewayResponse> {
 
-	private static final Logger LOG = Logger.getLogger(ApproveDeletion.class);
+	private static final Logger LOG = Logger.getLogger(DenyDeletion.class);
 
 	@Override
 	public ApiGatewayResponse handleRequest(Map<String, Object> input, Context context) {
@@ -38,9 +38,10 @@ public class ApproveDeletion implements RequestHandler<Map<String, Object>, ApiG
 				
 					String taskToken = URLDecoder.decode((String)pathParameters.get("taskToken"), "UTF-8");
 				
-					LOG.info("Sending task success for token " + taskToken);
-					SendTaskSuccessRequest taskSuccessRequest = new SendTaskSuccessRequest().withTaskToken(taskToken).withOutput("{}");
-					stepFunctionsClient.sendTaskSuccess(taskSuccessRequest);	
+					LOG.info("Sending task failure for token " + taskToken);
+					SendTaskFailureRequest taskFailureRequest = 
+							new SendTaskFailureRequest().withTaskToken(taskToken).withError("DeleteRejected");
+					stepFunctionsClient.sendTaskFailure(taskFailureRequest);
 				} catch (Exception e) {
 					LOG.error("Could not send task success for token", e);
 				}
@@ -48,7 +49,7 @@ public class ApproveDeletion implements RequestHandler<Map<String, Object>, ApiG
 			
 		}
 
-		Response responseBody = new Response("Approval received!");
+		Response responseBody = new Response("Denial received!");
 
 		Map<String, String> headers = new HashMap<>();
 		headers.put("X-Powered-By", "AWS Lambda & Serverless");
