@@ -61,16 +61,19 @@ public class SendDeleteConfirmationEmail implements RequestHandler<Map<String, O
 		try 
 		{
 			GetActivityTaskResult taskResult = stepFunctionsClient.getActivityTask(taskRequest);
-			LOG.info("Received task result: " + taskResult.toString());
 			
-			JSONObject jsonObj = new JSONObject(taskResult.getInput());
+			if (taskResult != null && taskResult.getInput() != null && taskResult.getTaskToken() != null) {
+				LOG.info("Received task result: " + taskResult.toString());
+				
+				JSONObject jsonObj = new JSONObject(taskResult.getInput());
 			
-			sendDeleteConfirmationEmail(
+				sendDeleteConfirmationEmail(
 					taskResult.getTaskToken(), 
 					jsonObj.getString("id"), 
 					jsonObj.getString("domain"), 
 					jsonObj.getString("username"),
 					jsonObj.getString("deleteConfirmEmailContact"));
+			}
 		}
 		catch (com.amazonaws.SdkClientException e) // read timeout is expected if there aren't any events pending
 		{
