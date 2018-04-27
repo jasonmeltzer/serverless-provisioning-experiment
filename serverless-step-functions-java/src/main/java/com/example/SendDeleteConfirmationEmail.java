@@ -52,7 +52,7 @@ public class SendDeleteConfirmationEmail implements RequestHandler<Map<String, O
 		Response responseBody = null;
 		
 		AWSStepFunctionsClientBuilder builder = AWSStepFunctionsClientBuilder.standard();
-		builder.setClientConfiguration(new ClientConfiguration().withSocketTimeout(1000));
+		builder.setClientConfiguration(new ClientConfiguration().withSocketTimeout(new Integer(System.getenv("socketTimeoutMillis"))));
 		AWSStepFunctions stepFunctionsClient = builder.build();
 		
 		GetActivityTaskRequest taskRequest = new GetActivityTaskRequest();
