@@ -4,7 +4,10 @@
 alarmNotificationEmail: name@email.com 
 
 # A webhook url for sending CloudWatch alarm notifications to a Slack channel
-alarmNotificationSlackWebhook: 
+alarmNotificationSlackWebhookPath: /services/x/x/x # don't include 'https://hooks.slack.com'
+
+# The channel to send alarm notifications to
+alarmNotificationSlackChannel: 
 
 # The address Simple Email Service will send from (you will have to verify this address through AWS manually one time)
 sesFromAddress: name@email.com

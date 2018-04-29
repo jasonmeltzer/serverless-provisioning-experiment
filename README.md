@@ -37,7 +37,7 @@ For the feature that will confirm deletions via email, go to https://console.aws
 
 For subscribing to the CloudWatch alarms via email (using the value in the config file under alarmNotificationEmail) you will need to click a link that will automatically be sent to you by AWS when you deploy. Again, if you don't want these emails, just don't click the link (but you have to enter a value in the config, for now.)
 
-If you want to subscribe to the CloudWatch alarms in your Slack channel, enter a webhook URL (set it up here: https://my.slack.com/services/new/incoming-webhook/). Again, just enter a bogus URL if you don't want this.
+If you want to subscribe to the CloudWatch alarms in your Slack channel, enter a webhook URL (set it up here: https://my.slack.com/services/new/incoming-webhook/) and channel to publish to. Again, just enter a bogus URL and channel if you don't want this.
 
 
 # The recommended order to deploy these projects:

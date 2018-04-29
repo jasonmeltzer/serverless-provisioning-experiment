@@ -37,7 +37,8 @@ provider:
 custom:  
   
   alarmNotificationEmail: ${file(../config/config-${self:provider.stage}.yml):alarmNotificationEmail} 
-  alarmNotificationSlackWebhook: ${file(../config/config-${self:provider.stage}.yml):alarmNotificationSlackWebhook} 
+  alarmNotificationSlackWebhookPath: ${file(../config/config-${self:provider.stage}.yml):alarmNotificationSlackWebhookPath} 
+  alarmNotificationSlackChannel: ${file(../config/config-${self:provider.stage}.yml):alarmNotificationSlackChannel} 
   
   # set up a topic name to be used in SNS for failures events on the Provisioning State Machine
   provisioningStateMachineExecutionsFailedSnsTopicName: provisioning-state-machine-executions-failed-${self:provider.stage}
@@ -131,7 +132,19 @@ functions:
                 - Ref: "AWS::AccountId"
                 - ":${self:custom.provisioningStateMachineExecutionsFailedSnsTopicName}"
           topicName: ${self:custom.provisioningStateMachineExecutionsFailedSnsTopicName}
-    
+  snsToSlack:
+    handler: snsToSlack.handler    
+    events:
+      - sns:   # https://serverless.com/framework/docs/providers/aws/events/sns/
+          arn: # I make no apologies for the syntax that follows. I've made peace with it.
+            Fn::Join: # Reference the ARN of the SNS topic created above under "Resources"
+              - ""
+              - - "arn:aws:sns:"
+                - Ref: "AWS::Region"
+                - ":"
+                - Ref: "AWS::AccountId"
+                - ":${self:custom.provisioningStateMachineExecutionsFailedSnsTopicName}"
+          topicName: ${self:custom.provisioningStateMachineExecutionsFailedSnsTopicName}
   
 stepFunctions:
   stateMachines:
