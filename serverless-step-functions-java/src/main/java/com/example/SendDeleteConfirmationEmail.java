@@ -67,12 +67,16 @@ public class SendDeleteConfirmationEmail implements RequestHandler<Map<String, O
 				
 				JSONObject jsonObj = new JSONObject(taskResult.getInput());
 			
-				sendDeleteConfirmationEmail(
-					taskResult.getTaskToken(), 
-					jsonObj.getString("id"), 
-					jsonObj.getString("domain"), 
-					jsonObj.getString("username"),
-					jsonObj.getString("deleteConfirmEmailContact"));
+				if (FROM != null && !FROM.isEmpty()) {
+					sendDeleteConfirmationEmail(
+							taskResult.getTaskToken(), 
+							jsonObj.getString("id"), 
+							jsonObj.getString("domain"), 
+							jsonObj.getString("username"),
+						jsonObj.getString("deleteConfirmEmailContact"));
+				} else {
+					LOG.error("sesFromAddress has not been set in config file, cannot send email");
+				}
 			}
 		}
 		catch (com.amazonaws.SdkClientException e) // read timeout is expected if there aren't any events pending

@@ -20,6 +20,7 @@ Some of these projects require serverless plugins and other npm modules. Run the
 ```
 serverless plugin install --name serverless-step-functions
 serverless plugin install --name serverless-pseudo-parameters
+serverless plugin install --name serverless-plugin-aws-alerts
 npm install moment
 ```
 
@@ -32,8 +33,11 @@ serverless plugin install --name serverless-pseudo-parameters
 
 Create a config file for each deployment stage (dev, test, etc.) in config/ using file format config-dev.yml, config-test.yml, etc. A sample file is included under config/config-{stage}.yml
 
-If you want to use the feature that will confirm deletions via email, go to https://console.aws.amazon.com/ses/home and verify the email address you put in your config file under "sesFromAddress". This will send you an email with a link that you have to click to verify you own the address the emails will be coming from. (Make sure to do this in the region(s) you'll be sending emails from, which should be the regions(s) you deploy 'serverless-step-functions-java' to!)
+For the feature that will confirm deletions via email, go to https://console.aws.amazon.com/ses/home and verify the email address you put in your config file under "sesFromAddress". This will send you an email with a link that you have to click to verify you own the address the emails will be coming from. (Make sure to do this in the region(s) you'll be sending emails from, which should be the regions(s) you deploy 'serverless-step-functions-java' to!) If you don't want this feature, just enter something in your config and don't verify the address.
 
+For subscribing to the CloudWatch alarms via email (using the value in the config file under alarmNotificationEmail) you will need to click a link that will automatically be sent to you by AWS when you deploy. Again, if you don't want these emails, just don't click the link (but you have to enter a value in the config, for now.)
+
+If you want to subscribe to the CloudWatch alarms in your Slack channel, enter a webhook URL (set it up here: https://my.slack.com/services/new/incoming-webhook/). Again, just enter a bogus URL if you don't want this.
 
 
 # The recommended order to deploy these projects:

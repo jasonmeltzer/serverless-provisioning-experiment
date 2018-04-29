@@ -36,14 +36,15 @@ provider:
     
 custom:  
   
-  alarmNotificationEmail: ${file(../config/config-${self:provider.stage}.yml):alarmNotificationEmail}
+  alarmNotificationEmail: ${file(../config/config-${self:provider.stage}.yml):alarmNotificationEmail} 
+  alarmNotificationSlackWebhook: ${file(../config/config-${self:provider.stage}.yml):alarmNotificationSlackWebhook} 
   
   # set up a topic name to be used in SNS for failures events on the Provisioning State Machine
   provisioningStateMachineExecutionsFailedSnsTopicName: provisioning-state-machine-executions-failed-${self:provider.stage}
   
   alerts:
     dashboards: true # turn on automatic CloudWatch dashboard as defined by plugin serverless-plugin-aws-alerts
-  
+
 resources:
   Outputs:
     ProvisioningStateMachineProxy:
@@ -60,6 +61,9 @@ resources:
       Type: AWS::SNS::Topic
       Properties:
         TopicName: ${self:custom.provisioningStateMachineExecutionsFailedSnsTopicName}
+        Subscription:
+          - Protocol: Email # subscribe emails to the topic, using the email that has been specified in config
+            Endpoint:  ${self:custom.alarmNotificationEmail}
   
     ProvStateMachineExecutionsFailedAlarm: # Create a cloudwatch alarm that uses the SNS topic above to publish to when   
                                            # the provisioning state machine has at least 1 failure in a 5 minute period
@@ -182,10 +186,10 @@ stepFunctions:
             Type: Choice
             Choices: 
               - Variable: "$.value"
-                NumericGreaterThan: 0.25
+                NumericGreaterThan: 0.01
                 Next: OutsideSystemSucceeded
               - Variable: "$.value"
-                NumericLessThan: 0.25
+                NumericLessThan: 0.01
                 Next: OutsideSystemFailed
             Default: OutsideSystemFailed
           OutsideSystemSucceeded:
