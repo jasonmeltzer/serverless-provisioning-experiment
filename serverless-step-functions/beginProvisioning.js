@@ -3,6 +3,9 @@
 var AWS = require('aws-sdk'),
     documentClient = new AWS.DynamoDB.DocumentClient(); 
 
+const awsXRay = require('aws-xray-sdk');
+const awsSdk = awsXRay.captureAWS(require('aws-sdk'));
+
 module.exports.begin = (event, context, callback) => {
 	
 	 var eventText = JSON.stringify(event, null, 2);

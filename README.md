@@ -21,6 +21,8 @@ Some of these projects require serverless plugins and other npm modules. Run the
 serverless plugin install --name serverless-step-functions
 serverless plugin install --name serverless-pseudo-parameters
 serverless plugin install --name serverless-plugin-aws-alerts
+npm install --save-dev serverless-plugin-tracing
+npm install aws-xray-sdk
 npm install moment
 ```
 
@@ -30,6 +32,11 @@ serverless plugin install --name serverless-step-functions
 serverless plugin install --name serverless-pseudo-parameters
 ```
 
+Run these commands in the serverless-rest-api directory:
+```
+npm install --save-dev serverless-plugin-tracing
+npm install aws-xray-sdk
+```
 
 Create a config file for each deployment stage (dev, test, etc.) in config/ using file format config-dev.yml, config-test.yml, etc. A sample file is included under config/config-{stage}.yml
 

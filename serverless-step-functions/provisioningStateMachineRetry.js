@@ -2,6 +2,10 @@
 
 var AWS = require('aws-sdk'),
     documentClient = new AWS.DynamoDB.DocumentClient();
+
+const awsXRay = require('aws-xray-sdk');
+const awsSdk = awsXRay.captureAWS(require('aws-sdk'));
+
 const stepfunctions = new AWS.StepFunctions(/*{apiVersion: '2016-11-23'}*/);
 var moment = require('moment');
 

@@ -10,6 +10,7 @@ provider:
   environment:
     #reference the output variable mailboxDynamoDbTableName defined in serverless-provisioning-dbonly project (in the appropriate stage)
     DYNAMODB_TABLE_MBOX: ${cf:serverless-provisioning-dbonly-${self:provider.stage}.mailboxesDynamoDbTableName}   
+  tracing: true # enable xray tracing 
   iamRoleStatements:
     - Effect: Allow
       Action:
@@ -22,6 +23,12 @@ provider:
       Resource: 
         #reference the output variable mailboxDynamoDbTableArn defined in serverless-provisioning-dbonly project (in the appropriate stage)
         ${cf:serverless-provisioning-dbonly-${self:provider.stage}.mailboxesDynamoDbTableArn} 
+    - Effect: "Allow" 
+      Action:
+        - "xray:PutTraceSegments"
+        - "xray:PutTelemetryRecords"
+      Resource:
+        - "*"
 
 functions:
   createMailbox:
@@ -64,3 +71,6 @@ functions:
           method: delete
           cors: true
 
+
+plugins:
+  - serverless-plugin-tracing

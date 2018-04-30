@@ -1,6 +1,9 @@
 'use strict';
 
-var aws = require('aws-sdk')
+var aws = require('aws-sdk');
+
+const awsXRay = require('aws-xray-sdk');
+const awsSdk = awsXRay.captureAWS(require('aws-sdk'));
 
 module.exports.process = (event, context, callback) => {
 	

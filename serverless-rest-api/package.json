@@ -5,6 +5,10 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
+    "aws-xray-sdk": "^1.2.0",
     "uuid": "^2.0.3"
+  },
+  "devDependencies": {
+    "serverless-plugin-tracing": "^2.0.0"
   }
 }

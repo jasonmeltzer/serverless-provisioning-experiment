@@ -2,6 +2,9 @@
 var https = require('https');
 var util = require('util');
 
+const awsXRay = require('aws-xray-sdk');
+const awsSdk = awsXRay.captureAWS(require('aws-sdk'));
+
 var slackChannel = process.env.alarmNotificationSlackChannel;
 
 

@@ -9,6 +9,7 @@ provider:
   environment:
     #reference the output variable mailboxDynamoDbTableName defined in serverless-provisioning-dbonly project (in the appropriate stage)
     DYNAMODB_TABLE_MBOX: ${cf:serverless-provisioning-dbonly-${self:provider.stage}.mailboxesDynamoDbTableName}   
+  tracing: true # enable xray tracing 
   iamRoleStatements:
     - Effect: Allow     # allow lambdas access to the history of state machines, as well the ability to create, describe, and execute them
       Action:
@@ -33,6 +34,12 @@ provider:
       Resource: 
         #reference the output variable mailboxDynamoDbTableArn defined in serverless-provisioning-dbonly project (in the appropriate stage)
         ${cf:serverless-provisioning-dbonly-${self:provider.stage}.mailboxesDynamoDbTableArn} 
+    - Effect: "Allow" 
+      Action:
+        - "xray:PutTraceSegments"
+        - "xray:PutTelemetryRecords"
+      Resource:
+        - "*"
     
 custom:  
   
@@ -237,3 +244,4 @@ plugins:
   - serverless-step-functions
   - serverless-pseudo-parameters
   - serverless-plugin-aws-alerts
+  - serverless-plugin-tracing
