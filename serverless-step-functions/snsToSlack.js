@@ -19,33 +19,9 @@ exports.handler = function(event, context) {
     var message = event.Records[0].Sns.Message;
     var severity = "good";
 
-    var dangerMessages = [
-        " but with errors",
-        " to RED",
-        "During an aborted deployment",
-        "Failed to deploy application",
-        "Failed to deploy configuration",
-        "has a dependent object",
-        "is not authorized to perform",
-        "Pending to Degraded",
-        "Stack deletion failed",
-        "Unsuccessful command execution",
-        "You do not have permission",
-        "Your quota allows for 0 more running instance"];
+    var dangerMessages = [];
 
-    var warningMessages = [
-        " aborted operation.",
-        " to YELLOW",
-        "Adding instance ",
-        "Degraded to Info",
-        "Deleting SNS topic",
-        "is currently running under desired capacity",
-        "Ok to Info",
-        "Ok to Warning",
-        "Pending Initialization",
-        "Removed instance ",
-        "Rollback of environment"        
-        ];
+    var warningMessages = [];
     
     for(var dangerMessagesItem in dangerMessages) {
         if (message.indexOf(dangerMessages[dangerMessagesItem]) != -1) {
@@ -77,11 +53,8 @@ exports.handler = function(event, context) {
         port: 443,
         path: process.env.alarmNotificationSlackWebhookPath
     };
-    
-    console.log("path: " + process.env.alarmNotificationSlackWebhookPath);
 
     var req = https.request(options, function(res) {
-      console.log("Requested..." + JSON.stringify(options));
       console.log("postData: " + JSON.stringify(postData));
       res.setEncoding('utf8');
       res.on('data', function (chunk) {
