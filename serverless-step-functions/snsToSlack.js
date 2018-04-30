@@ -77,8 +77,12 @@ exports.handler = function(event, context) {
         port: 443,
         path: process.env.alarmNotificationSlackWebhookPath
     };
+    
+    console.log("path: " + process.env.alarmNotificationSlackWebhookPath);
 
     var req = https.request(options, function(res) {
+      console.log("Requested..." + JSON.stringify(options));
+      console.log("postData: " + JSON.stringify(postData));
       res.setEncoding('utf8');
       res.on('data', function (chunk) {
         context.done(null);

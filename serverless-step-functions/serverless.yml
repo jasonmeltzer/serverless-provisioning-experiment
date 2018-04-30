@@ -133,7 +133,10 @@ functions:
                 - ":${self:custom.provisioningStateMachineExecutionsFailedSnsTopicName}"
           topicName: ${self:custom.provisioningStateMachineExecutionsFailedSnsTopicName}
   snsToSlack:
-    handler: snsToSlack.handler    
+    handler: snsToSlack.handler 
+    environment:
+      alarmNotificationSlackWebhookPath: ${self:custom.alarmNotificationSlackWebhookPath} 
+      alarmNotificationSlackChannel: ${self:custom.alarmNotificationSlackChannel} 
     events:
       - sns:   # https://serverless.com/framework/docs/providers/aws/events/sns/
           arn: # I make no apologies for the syntax that follows. I've made peace with it.
