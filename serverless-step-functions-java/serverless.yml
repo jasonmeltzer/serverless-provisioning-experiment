@@ -109,7 +109,7 @@ stepFunctions:
           DeleteConfirmationActivity:
             Type: Task
             Resource: "${self:custom.deleteConfirmationActivityArn}"
-            TimeoutSeconds: 150 # This represents how long the task will stay alive *once it's picked up by a worker*
+            TimeoutSeconds: 600 # This represents how long the task will stay alive *once it's picked up by a worker*
             ResultPath: $.activity-info # Send activity-related output here (there isn't any) so the original input gets carried through
             Next: DeletionHandler 
             Catch:
