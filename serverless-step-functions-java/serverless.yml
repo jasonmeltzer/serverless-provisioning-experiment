@@ -73,8 +73,8 @@ functions:
       delete_confirmation_activity_arn: ${self:custom.deleteConfirmationActivityArn} 
       sesFromAddress: ${self:custom.sesFromAddress}
       region: "#{AWS::Region}"
-      socketTimeoutMillis: 60000
-    timeout: 75 # Give the lambda a little longer than the 60 seconds the socket is allowed to poll for, so it has time to finish the job
+      socketTimeoutMillis: 10000
+    timeout: 15 # Give the lambda a little longer than the 10 seconds the socket is allowed to poll for, so it has time to finish the job
     events:
       - schedule: 
           rate: rate(1 minute) 
